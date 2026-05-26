@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>떡 먹은 사람 찾기</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="theme-ricecake">
+    <main class="app-shell">
+      <section class="control-panel" aria-label="게임 설정">
+        <header class="brand">
+          <p>Random Game Console</p>
+          <h1>떡 먹은 사람 찾기</h1>
+        </header>
+
+        <label class="name-input">
+          <span>참여자 명단</span>
+          <textarea id="namesInput" spellcheck="false"></textarea>
+        </label>
+
+        <div class="file-row">
+          <label class="file-button" for="fileInput">CSV 불러오기</label>
+          <input id="fileInput" type="file" accept=".csv,.txt" />
+          <button id="sampleButton" class="ghost-button" type="button">샘플</button>
+        </div>
+
+        <div class="stats">
+          <div>
+            <span>참여자</span>
+            <strong id="playerCount">0</strong>
+          </div>
+          <div>
+            <span>남은 인원</span>
+            <strong id="activeCount">0</strong>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="startButton" class="primary-button" type="button">게임 시작</button>
+          <button id="resetButton" class="ghost-button" type="button">초기화</button>
+        </div>
+
+        <p id="message" class="message">떡 접시가 비어 있습니다</p>
+      </section>
+
+      <section class="stage-panel" aria-label="떡 흔적판">
+        <div class="stage-top">
+          <div>
+            <p>흔적을 따라가다 보면 떡을 먹은 사람이 드러납니다</p>
+            <h2 id="stageTitle">떡 접시가 비어 있습니다</h2>
+          </div>
+          <span id="stageBadge">용의자</span>
+        </div>
+
+        <div id="arena" class="arena" aria-live="polite">
+          <div id="effectLayer" class="effect-layer"></div>
+          <div id="board" class="board"></div>
+        </div>
+
+        <div class="winner-panel" id="winnerPanel" hidden>
+          <span>오늘의 우승자</span>
+          <strong id="winnerName">--</strong>
+          <p>떡가루가 손에 남아 있었습니다</p>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
