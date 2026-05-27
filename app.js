@@ -9,7 +9,20 @@ const CONFIG = {
     jump: "assets/sprite-jump.png",
     slide: "assets/sprite-slide.png",
   },
+  sounds: {
+    eat: "assets/sound-eat.wav",
+    shuffle: "assets/sound-shuffle.wav",
+    fanfare: "assets/sound-fanfare.wav",
+  },
   motions: ["jump", "slide"],
+};
+
+const audio = {
+  context: null,
+  master: null,
+  elements: null,
+  shuffleTimer: 0,
+  shuffleTick: 0,
 };
 
 const dom = {
@@ -85,6 +98,7 @@ function readCharacterCount() {
 }
 
 function resetToPreview(count) {
+  stopShuffleSound();
   state.token += 1;
   state.phase = "idle";
   state.running = false;
@@ -110,6 +124,7 @@ async function startGame() {
     return;
   }
 
+  await ensureAudio();
   const count = readCharacterCount();
   setupCharacters(count);
   state.token += 1;
@@ -123,6 +138,7 @@ async function startGame() {
   setControlsLocked(true);
   render();
   setMessage(`${state.ricecakeId + 1}번 캐릭터가 스스로 떡을 먹었습니다. 이제 움직임을 잘 따라가세요.`);
+  playEatSound();
   popBursts(14, "rice");
   await wait(2400);
 
@@ -131,8 +147,10 @@ async function startGame() {
   }
 
   state.phase = "shuffling";
+  startShuffleSound();
   for (let round = 1; round <= CONFIG.shuffleRounds; round += 1) {
     if (token !== state.token) {
+      stopShuffleSound();
       return;
     }
 
@@ -151,9 +169,11 @@ async function startGame() {
   }
 
   if (token !== state.token) {
+    stopShuffleSound();
     return;
   }
 
+  stopShuffleSound();
   state.phase = "ready";
   state.running = false;
   state.motionById = {};
@@ -201,6 +221,8 @@ function revealResult() {
     return;
   }
 
+  stopShuffleSound();
+  playFanfare();
   state.phase = "revealed";
   state.motionById = { [state.ricecakeId]: "eat" };
   dom.winnerName.textContent = `${state.ricecakeId + 1}번 캐릭터`;
@@ -212,6 +234,171 @@ function revealResult() {
 
 function resetGame() {
   resetToPreview(readCharacterCount());
+}
+
+async function ensureAudio() {
+  ensureSoundElements();
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    return null;
+  }
+
+  if (!audio.context) {
+    audio.context = new AudioContext();
+    audio.master = audio.context.createGain();
+    audio.master.gain.value = 0.32;
+    audio.master.connect(audio.context.destination);
+  }
+
+  if (audio.context.state === "suspended") {
+    await audio.context.resume();
+  }
+
+  return audio.context;
+}
+
+function startShuffleSound() {
+  stopShuffleSound();
+  const context = audio.context;
+  if (!context || !audio.master) {
+    playSoundElement("shuffle", true);
+    return;
+  }
+
+  audio.shuffleTick = 0;
+  audio.shuffleTimer = window.setInterval(() => {
+    const time = context.currentTime + 0.018;
+    const melody = [392, 466.16, 523.25, 587.33, 622.25, 587.33, 523.25, 466.16];
+    const freq = melody[audio.shuffleTick % melody.length];
+    const accent = audio.shuffleTick % 4 === 0;
+    playTone(freq, time, 0.08, accent ? 0.09 : 0.055, "square");
+    playTone(freq * 2, time + 0.045, 0.055, 0.026, "triangle");
+    playNoise(time + 0.02, 0.052, accent ? 0.09 : 0.045);
+    audio.shuffleTick += 1;
+  }, 170);
+}
+
+function stopShuffleSound() {
+  if (audio.shuffleTimer) {
+    window.clearInterval(audio.shuffleTimer);
+    audio.shuffleTimer = 0;
+  }
+  if (audio.elements?.shuffle) {
+    audio.elements.shuffle.pause();
+    audio.elements.shuffle.currentTime = 0;
+  }
+}
+
+function playEatSound() {
+  const context = audio.context;
+  if (!context || !audio.master) {
+    playSoundElement("eat");
+    return;
+  }
+
+  const time = context.currentTime + 0.02;
+  playTone(523.25, time, 0.09, 0.07, "triangle");
+  playTone(659.25, time + 0.1, 0.1, 0.07, "triangle");
+  playNoise(time + 0.19, 0.07, 0.04);
+}
+
+function playFanfare() {
+  ensureAudio().then((context) => {
+    if (!context || !audio.master) {
+      playSoundElement("fanfare");
+      window.setTimeout(() => popBursts(28, "spark"), 180);
+      return;
+    }
+
+    const start = context.currentTime + 0.025;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, index) => {
+      const time = start + index * 0.12;
+      playTone(freq, time, 0.16, 0.12, "sawtooth");
+      playTone(freq * 1.5, time, 0.12, 0.05, "triangle");
+    });
+    playTone(1046.5, start + 0.52, 0.42, 0.16, "sawtooth");
+    playTone(1318.51, start + 0.52, 0.42, 0.1, "triangle");
+    playNoise(start + 0.5, 0.18, 0.12);
+    window.setTimeout(() => popBursts(28, "spark"), 180);
+  });
+}
+
+function ensureSoundElements() {
+  if (audio.elements) {
+    return;
+  }
+
+  audio.elements = {
+    eat: new Audio(CONFIG.sounds.eat),
+    shuffle: new Audio(CONFIG.sounds.shuffle),
+    fanfare: new Audio(CONFIG.sounds.fanfare),
+  };
+  audio.elements.eat.volume = 0.45;
+  audio.elements.shuffle.volume = 0.28;
+  audio.elements.shuffle.loop = true;
+  audio.elements.fanfare.volume = 0.52;
+}
+
+function playSoundElement(name, loop = false) {
+  ensureSoundElements();
+  const element = audio.elements?.[name];
+  if (!element) {
+    return;
+  }
+
+  element.pause();
+  element.loop = loop;
+  element.currentTime = 0;
+  element.play().catch(() => {});
+}
+
+function playTone(frequency, time, duration, gainValue, type) {
+  const context = audio.context;
+  if (!context || !audio.master) {
+    return;
+  }
+
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, time);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.018, time + duration);
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(gainValue, time + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+  oscillator.connect(gain);
+  gain.connect(audio.master);
+  oscillator.start(time);
+  oscillator.stop(time + duration + 0.025);
+}
+
+function playNoise(time, duration, gainValue) {
+  const context = audio.context;
+  if (!context || !audio.master) {
+    return;
+  }
+
+  const sampleCount = Math.max(1, Math.floor(context.sampleRate * duration));
+  const buffer = context.createBuffer(1, sampleCount, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < sampleCount; index += 1) {
+    data[index] = (Math.random() * 2 - 1) * (1 - index / sampleCount);
+  }
+
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(1200, time);
+  gain.gain.setValueAtTime(gainValue, time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+  source.buffer = buffer;
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audio.master);
+  source.start(time);
+  source.stop(time + duration + 0.02);
 }
 
 function render() {
