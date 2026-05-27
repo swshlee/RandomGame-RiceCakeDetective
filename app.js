@@ -3,8 +3,13 @@ const CONFIG = {
   maxCharacters: 12,
   defaultCharacters: 8,
   shuffleRounds: 5,
-  characterImage: "assets/ricecake-yabawi-character-neutral.png",
-  motions: ["jump", "roll", "leap", "spin", "dash"],
+  characterImages: {
+    idle: "assets/ricecake-yabawi-character-neutral.png",
+    eat: "assets/ricecake-yabawi-character-eat.png",
+    jump: "assets/ricecake-yabawi-character-jump.png",
+    slide: "assets/ricecake-yabawi-character-slide.png",
+  },
+  motions: ["jump", "slide"],
 };
 
 const dom = {
@@ -117,9 +122,9 @@ async function startGame() {
   dom.winnerPanel.hidden = true;
   setControlsLocked(true);
   render();
-  setMessage(`${state.ricecakeId + 1}번 캐릭터가 몰래 떡을 먹었습니다. 눈으로 잘 따라가세요.`);
+  setMessage(`${state.ricecakeId + 1}번 캐릭터가 스스로 떡을 먹었습니다. 이제 움직임을 잘 따라가세요.`);
   popBursts(14, "rice");
-  await wait(2300);
+  await wait(2400);
 
   if (token !== state.token) {
     return;
@@ -130,17 +135,19 @@ async function startGame() {
     if (token !== state.token) {
       return;
     }
+
     state.shuffleStep = round;
     const nextOrder = makeShuffleOrder(state.order, round);
     state.motionById = getMotionMap(state.order, nextOrder, round);
     state.order = nextOrder;
     render();
-    setMessage(`${round}번째 야바위 섞기 진행 중`);
+    setMessage(`${round}번째 섞기: 캐릭터들이 점프와 슬라이딩으로 자리를 바꿉니다.`);
     popBursts(10 + round, "spark");
-    await wait(1420);
+    await wait(1480);
+
     state.motionById = {};
     render();
-    await wait(220);
+    await wait(240);
   }
 
   if (token !== state.token) {
@@ -183,8 +190,7 @@ function getMotionMap(previousOrder, nextOrder, round) {
     const previousIndex = previousOrder.indexOf(characterId);
     if (previousIndex !== nextIndex) {
       const distance = Math.abs(previousIndex - nextIndex);
-      const motionIndex = (round + nextIndex + distance) % CONFIG.motions.length;
-      motions[characterId] = CONFIG.motions[motionIndex];
+      motions[characterId] = (round + nextIndex + distance) % 2 === 0 ? "jump" : "slide";
     }
     return motions;
   }, {});
@@ -196,7 +202,7 @@ function revealResult() {
   }
 
   state.phase = "revealed";
-  state.motionById = { [state.ricecakeId]: "winner" };
+  state.motionById = { [state.ricecakeId]: "eat" };
   dom.winnerName.textContent = `${state.ricecakeId + 1}번 캐릭터`;
   dom.winnerPanel.hidden = false;
   popBursts(52, "rice");
@@ -233,8 +239,10 @@ function render() {
   dom.board.innerHTML = state.characters
     .map((character) => {
       const slot = positionById.get(character.id);
+      const motion = state.motionById[character.id] || "";
+      const imageSource = imageForCharacter(character.id, motion);
       const classes = ["character-card"];
-      const motion = state.motionById[character.id];
+
       if (motion) {
         classes.push(`motion-${motion}`);
       }
@@ -256,8 +264,7 @@ function render() {
           <div class="character-inner">
             <span class="number-badge">${character.id + 1}</span>
             <span class="question-mark">?</span>
-            <img class="character-image" src="${CONFIG.characterImage}" alt="" draggable="false" />
-            <span class="ricecake-piece" aria-hidden="true"></span>
+            <img class="character-image" src="${imageSource}" alt="" draggable="false" />
           </div>
           <strong>${character.label}</strong>
         </article>
@@ -270,6 +277,22 @@ function render() {
     setControlsLocked(false);
     setMessage("캐릭터 수를 정하고 게임을 시작하세요.");
   }
+}
+
+function imageForCharacter(characterId, motion) {
+  if (state.phase === "eating" && characterId === state.ricecakeId) {
+    return CONFIG.characterImages.eat;
+  }
+  if (state.phase === "revealed" && characterId === state.ricecakeId) {
+    return CONFIG.characterImages.eat;
+  }
+  if (motion === "jump") {
+    return CONFIG.characterImages.jump;
+  }
+  if (motion === "slide") {
+    return CONFIG.characterImages.slide;
+  }
+  return CONFIG.characterImages.idle;
 }
 
 function setControlsLocked(locked) {
@@ -299,26 +322,14 @@ function stageBadge() {
 function computeLayout(count) {
   const boardWidth = dom.board.clientWidth || 900;
   const boardHeight = dom.board.clientHeight || 560;
-  const spaceBasedColumns = clamp(Math.floor(boardWidth / 136), 3, count);
-  const preferredColumns = count <= 4 ? count : Math.ceil(Math.sqrt(count * 1.35));
-  const columns = Math.min(preferredColumns, spaceBasedColumns, count);
-  const rows = Math.ceil(count / columns);
-  const horizontalWidth = (boardWidth / (columns + 1)) * 0.86;
-  const verticalWidth = ((boardHeight / (rows + 1)) - 30) / 1.35;
-  const cardWidth = Math.floor(clamp(Math.min(horizontalWidth, verticalWidth), 78, 158));
-  const slots = Array.from({ length: count }, (_, slotIndex) => {
-    const row = Math.floor(slotIndex / columns);
-    const rowStart = row * columns;
-    const itemsInRow = Math.min(columns, count - rowStart);
-    const col = slotIndex - rowStart;
-    const x = ((col + 1) / (itemsInRow + 1)) * 100;
-    const y = rows === 1 ? 50 : ((row + 1) / (rows + 1)) * 100;
-    return {
-      x: round(x),
-      y: round(y),
-      z: 10 + row,
-    };
-  });
+  const usableWidth = Math.max(320, boardWidth - 36);
+  const cardWidth = Math.floor(clamp((usableWidth / count) * 0.9, 58, 148));
+  const y = boardHeight < 420 ? 52 : 55;
+  const slots = Array.from({ length: count }, (_, slotIndex) => ({
+    x: round(((slotIndex + 1) / (count + 1)) * 100),
+    y,
+    z: 10 + slotIndex,
+  }));
   return { slots, cardWidth };
 }
 
