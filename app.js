@@ -4,10 +4,10 @@ const CONFIG = {
   defaultCharacters: 8,
   shuffleRounds: 5,
   characterImages: {
-    idle: "assets/ricecake-yabawi-character-neutral.png",
-    eat: "assets/ricecake-yabawi-character-eat.png",
-    jump: "assets/ricecake-yabawi-character-jump.png",
-    slide: "assets/ricecake-yabawi-character-slide.png",
+    idle: "assets/sprite-idle.png",
+    eat: "assets/sprite-eat.png",
+    jump: "assets/sprite-jump.png",
+    slide: "assets/sprite-slide.png",
   },
   motions: ["jump", "slide"],
 };
@@ -323,8 +323,8 @@ function computeLayout(count) {
   const boardWidth = dom.board.clientWidth || 900;
   const boardHeight = dom.board.clientHeight || 560;
   const usableWidth = Math.max(320, boardWidth - 36);
-  const cardWidth = Math.floor(clamp((usableWidth / count) * 0.9, 58, 148));
-  const y = boardHeight < 420 ? 52 : 55;
+  const cardWidth = Math.floor(clamp((usableWidth / count) * 1.05, 66, 150));
+  const y = boardHeight < 420 ? 62 : 64;
   const slots = Array.from({ length: count }, (_, slotIndex) => ({
     x: round(((slotIndex + 1) / (count + 1)) * 100),
     y,

@@ -260,9 +260,9 @@ input:disabled {
 .table-line {
   position: absolute;
   left: 50%;
-  bottom: 20%;
+  bottom: 13%;
   width: min(980px, 92%);
-  height: 16%;
+  height: 18%;
   transform: translateX(-50%) perspective(500px) rotateX(58deg);
   border-radius: 50%;
   background:
@@ -296,27 +296,38 @@ input:disabled {
 .character-inner {
   position: relative;
   width: 100%;
-  aspect-ratio: 0.74;
-  overflow: hidden;
-  border: 2px solid var(--accent-color);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.13), transparent 34%),
-    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent-color), transparent 42%), rgba(9, 8, 11, 0.9) 58%);
-  box-shadow:
-    0 16px 38px rgba(0, 0, 0, 0.42),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  aspect-ratio: 0.46;
+  overflow: visible;
+  filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.48));
+  transform-origin: 50% 88%;
+  animation: idleSway 1800ms ease-in-out infinite;
 }
 
 .character-image {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  bottom: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  transform: translateX(-50%);
+  object-fit: contain;
+  object-position: center bottom;
   user-select: none;
   pointer-events: none;
+}
+
+.character-card::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 78%;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.42);
+  filter: blur(8px);
+  opacity: 0.78;
 }
 
 .number-badge,
@@ -329,10 +340,11 @@ input:disabled {
 }
 
 .number-badge {
-  left: 8px;
-  top: 8px;
+  left: 50%;
+  top: -22px;
   width: 32px;
   height: 32px;
+  transform: translateX(-50%);
   border-radius: 999px;
   background: var(--accent-color);
   color: #08070a;
@@ -340,8 +352,8 @@ input:disabled {
 }
 
 .question-mark {
-  right: 9px;
-  top: 8px;
+  right: -8px;
+  top: 2px;
   width: 30px;
   height: 30px;
   border: 1px solid rgba(255, 255, 255, 0.32);
@@ -354,7 +366,7 @@ input:disabled {
 .character-card strong {
   display: block;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
   overflow: hidden;
   color: var(--text);
   font-size: clamp(0.78rem, 1.4vw, 0.94rem);
@@ -371,9 +383,9 @@ input:disabled {
 
 .character-card.eating .character-inner {
   animation: eatBounce 720ms ease-in-out infinite;
-  box-shadow:
-    0 0 0 4px rgba(255, 112, 102, 0.32),
-    0 26px 70px rgba(255, 112, 102, 0.34);
+  filter:
+    drop-shadow(0 0 14px rgba(255, 112, 102, 0.58))
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
 }
 
 .character-card.mystery .question-mark {
@@ -385,11 +397,21 @@ input:disabled {
   z-index: 50;
 }
 
+.character-card.motion-jump {
+  width: calc(var(--card-width) * 1.8);
+}
+
 .character-card.motion-jump .character-inner {
+  aspect-ratio: 1.03;
   animation: jumpMotion 1050ms ease-in-out;
 }
 
+.character-card.motion-slide {
+  width: calc(var(--card-width) * 1.86);
+}
+
 .character-card.motion-slide .character-inner {
+  aspect-ratio: 1.02;
   animation: slideMotion 1050ms ease-in-out;
 }
 
@@ -399,10 +421,9 @@ input:disabled {
 }
 
 .character-card.revealed .character-inner {
-  border-color: var(--secondary);
-  box-shadow:
-    0 0 0 5px rgba(255, 112, 102, 0.3),
-    0 28px 80px rgba(255, 112, 102, 0.45);
+  filter:
+    drop-shadow(0 0 18px rgba(255, 112, 102, 0.72))
+    drop-shadow(0 26px 24px rgba(0, 0, 0, 0.54));
   animation: winnerPop 900ms cubic-bezier(0.16, 0.82, 0.22, 1) both;
 }
 
@@ -473,13 +494,23 @@ input:disabled {
   font-weight: 1000;
 }
 
+@keyframes idleSway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(-1.2deg);
+  }
+}
+
 @keyframes eatBounce {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-12px) rotate(-3deg);
+    transform: translateY(-12px) rotate(-2.4deg) scale(1.04);
   }
 }
 
@@ -489,7 +520,7 @@ input:disabled {
     transform: translateY(0) scale(1);
   }
   45% {
-    transform: translateY(-74px) scale(1.06) rotate(-4deg);
+    transform: translateY(-86px) scale(1.06) rotate(-5deg);
   }
 }
 
@@ -499,10 +530,10 @@ input:disabled {
     transform: translateX(0) translateY(0) skewX(0deg) scale(1);
   }
   40% {
-    transform: translateX(32px) translateY(14px) skewX(-8deg) scale(0.96);
+    transform: translateX(34px) translateY(18px) skewX(-8deg) scale(0.96);
   }
   70% {
-    transform: translateX(-26px) translateY(6px) skewX(8deg) scale(0.98);
+    transform: translateX(-28px) translateY(8px) skewX(8deg) scale(0.98);
   }
 }
 
