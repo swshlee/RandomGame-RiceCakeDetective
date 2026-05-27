@@ -3,68 +3,72 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>떡 먹은 사람 찾기</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>떡먹은 사람 찾기</title>
+    <link rel="stylesheet" href="styles.css?v=yabawi1" />
   </head>
-  <body class="theme-ricecake">
+  <body>
     <main class="app-shell">
       <section class="control-panel" aria-label="게임 설정">
         <header class="brand">
-          <p>Random Game Console</p>
-          <h1>떡 먹은 사람 찾기</h1>
+          <p>Rice Cake Yabawi Console</p>
+          <h1>떡먹은 사람 찾기</h1>
         </header>
 
-        <label class="name-input">
-          <span>참여자 명단</span>
-          <textarea id="namesInput" spellcheck="false"></textarea>
+        <label class="count-input">
+          <span>야바위할 캐릭터 수</span>
+          <input id="characterCount" type="number" min="3" max="12" value="8" inputmode="numeric" />
         </label>
 
-        <div class="file-row">
-          <label class="file-button" for="fileInput">CSV 불러오기</label>
-          <input id="fileInput" type="file" accept=".csv,.txt" />
-          <button id="sampleButton" class="ghost-button" type="button">샘플</button>
+        <div class="quick-counts" aria-label="빠른 캐릭터 수 선택">
+          <button type="button" data-count="4">4명</button>
+          <button type="button" data-count="6">6명</button>
+          <button type="button" data-count="8">8명</button>
+          <button type="button" data-count="10">10명</button>
         </div>
 
         <div class="stats">
           <div>
-            <span>참여자</span>
-            <strong id="playerCount">0</strong>
+            <span>캐릭터</span>
+            <strong id="characterTotal">0</strong>
           </div>
           <div>
-            <span>남은 인원</span>
-            <strong id="activeCount">0</strong>
+            <span>섞기</span>
+            <strong><span id="shuffleCounter">0</span>/5</strong>
           </div>
         </div>
 
         <div class="actions">
-          <button id="startButton" class="primary-button" type="button">게임 시작</button>
+          <button id="startButton" class="primary-button" type="button">게임시작</button>
+          <button id="revealButton" class="primary-button reveal-button" type="button" hidden>결과 확인</button>
           <button id="resetButton" class="ghost-button" type="button">초기화</button>
         </div>
 
-        <p id="message" class="message">떡 접시가 비어 있습니다</p>
+        <p id="message" class="message">캐릭터 수를 정하고 게임을 시작하세요.</p>
       </section>
 
-      <section class="stage-panel" aria-label="떡 흔적판">
+      <section class="stage-panel" aria-label="떡 야바위 무대">
         <div class="stage-top">
           <div>
-            <p>흔적을 따라가다 보면 떡을 먹은 사람이 드러납니다</p>
-            <h2 id="stageTitle">떡 접시가 비어 있습니다</h2>
+            <p>한 캐릭터가 몰래 떡을 먹고, 모두가 뒤섞입니다.</p>
+            <h2 id="stageTitle">대기 중</h2>
           </div>
-          <span id="stageBadge">용의자</span>
+          <span id="stageBadge">READY</span>
         </div>
 
         <div id="arena" class="arena" aria-live="polite">
+          <div class="table-line"></div>
           <div id="effectLayer" class="effect-layer"></div>
           <div id="board" class="board"></div>
         </div>
 
         <div class="winner-panel" id="winnerPanel" hidden>
-          <span>오늘의 우승자</span>
+          <span>떡 먹은 캐릭터</span>
           <strong id="winnerName">--</strong>
-          <p>떡가루가 손에 남아 있었습니다</p>
+          <p>증거 떡이 여기서 나왔습니다.</p>
         </div>
       </section>
     </main>
-    <script src="app.js"></script>
+
+    <script src="app.js?v=yabawi1"></script>
   </body>
 </html>

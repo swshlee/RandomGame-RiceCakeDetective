@@ -1,52 +1,23 @@
 const CONFIG = {
-  "repo": "RandomGame-RiceCakeDetective",
-  "title": "떡 먹은 사람 찾기",
-  "subtitle": "흔적을 따라가다 보면 떡을 먹은 사람이 드러납니다",
-  "icon": "◆",
-  "mode": "ricecake",
-  "item": "용의자",
-  "arenaLabel": "떡 흔적판",
-  "waiting": "떡 접시가 비어 있습니다",
-  "start": "추적 시작",
-  "action": "떡가루 발견",
-  "final": "마지막 단서",
-  "winnerLine": "떡가루가 손에 남아 있었습니다",
-  "eliminatedLine": "알리바이가 확인됐습니다",
-  "theme": [
-    "#f2d78b",
-    "#ff6f61",
-    "#17120f"
-  ],
-  "sampleNames": [
-    "김도윤",
-    "이서연",
-    "박지호",
-    "최하준",
-    "정민서",
-    "강서준",
-    "윤지우",
-    "장하은",
-    "임시우",
-    "한유진",
-    "오준서",
-    "신아린",
-    "권도현",
-    "송지민",
-    "홍예준",
-    "유나"
-  ]
+  minCharacters: 3,
+  maxCharacters: 12,
+  defaultCharacters: 8,
+  shuffleRounds: 5,
+  characterImage: "assets/ricecake-yabawi-character-neutral.png",
+  motions: ["jump", "roll", "leap", "spin", "dash"],
 };
 
 const dom = {
-  namesInput: document.getElementById("namesInput"),
-  fileInput: document.getElementById("fileInput"),
-  sampleButton: document.getElementById("sampleButton"),
+  characterCount: document.getElementById("characterCount"),
+  presetButtons: [...document.querySelectorAll("[data-count]")],
   startButton: document.getElementById("startButton"),
+  revealButton: document.getElementById("revealButton"),
   resetButton: document.getElementById("resetButton"),
-  playerCount: document.getElementById("playerCount"),
-  activeCount: document.getElementById("activeCount"),
+  characterTotal: document.getElementById("characterTotal"),
+  shuffleCounter: document.getElementById("shuffleCounter"),
   message: document.getElementById("message"),
   stageTitle: document.getElementById("stageTitle"),
+  stageBadge: document.getElementById("stageBadge"),
   board: document.getElementById("board"),
   effectLayer: document.getElementById("effectLayer"),
   winnerPanel: document.getElementById("winnerPanel"),
@@ -54,82 +25,79 @@ const dom = {
 };
 
 const state = {
-  players: [],
+  characters: [],
+  order: [],
+  ricecakeId: -1,
+  phase: "idle",
   running: false,
   token: 0,
-  winnerIndex: -1,
+  shuffleStep: 0,
+  motionById: {},
 };
 
 init();
 
 function init() {
-  dom.namesInput.value = CONFIG.sampleNames.join("\n");
   bindEvents();
-  loadPlayers();
+  setupCharacters(readCharacterCount());
   render();
 }
 
 function bindEvents() {
-  dom.namesInput.addEventListener("input", () => {
-    if (state.running) {
+  dom.characterCount.addEventListener("input", () => {
+    if (state.running || state.phase === "ready") {
       return;
     }
-    loadPlayers();
-    render();
+    resetToPreview(readCharacterCount());
   });
 
-  dom.sampleButton.addEventListener("click", () => {
-    if (state.running) {
-      return;
-    }
-    dom.namesInput.value = shuffle(CONFIG.sampleNames).join("\n");
-    loadPlayers();
-    render();
-  });
-
-  dom.fileInput.addEventListener("change", async () => {
-    if (state.running) {
-      return;
-    }
-    const [file] = dom.fileInput.files;
-    if (!file) {
-      return;
-    }
-    const text = await file.text();
-    dom.namesInput.value = parseNames(text).join("\n");
-    loadPlayers();
-    render();
+  dom.presetButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (state.running || state.phase === "ready") {
+        return;
+      }
+      dom.characterCount.value = button.dataset.count;
+      resetToPreview(readCharacterCount());
+    });
   });
 
   dom.startButton.addEventListener("click", startGame);
+  dom.revealButton.addEventListener("click", revealResult);
   dom.resetButton.addEventListener("click", resetGame);
-}
-
-function parseNames(text) {
-  return text
-    .split(/[\n,;\t]/)
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-function loadPlayers() {
-  const uniqueNames = [];
-  const seen = new Set();
-  parseNames(dom.namesInput.value).forEach((name) => {
-    const key = name.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      uniqueNames.push(name);
+  window.addEventListener("resize", () => {
+    if (!state.running) {
+      render();
     }
   });
+}
 
-  state.players = uniqueNames.map((name, index) => ({
+function readCharacterCount() {
+  const rawValue = Number.parseInt(dom.characterCount.value, 10);
+  const fallback = Number.isFinite(rawValue) ? rawValue : CONFIG.defaultCharacters;
+  const count = clamp(fallback, CONFIG.minCharacters, CONFIG.maxCharacters);
+  dom.characterCount.value = count;
+  return count;
+}
+
+function resetToPreview(count) {
+  state.token += 1;
+  state.phase = "idle";
+  state.running = false;
+  state.shuffleStep = 0;
+  state.ricecakeId = -1;
+  state.motionById = {};
+  setupCharacters(count);
+  dom.winnerPanel.hidden = true;
+  render();
+}
+
+function setupCharacters(count) {
+  state.characters = Array.from({ length: count }, (_, index) => ({
     id: index,
-    name,
-    active: true,
-    winner: false,
+    label: `${index + 1}번 캐릭터`,
+    accent: characterAccent(index),
   }));
-  state.winnerIndex = -1;
+  state.order = state.characters.map((character) => character.id);
 }
 
 async function startGame() {
@@ -137,166 +105,249 @@ async function startGame() {
     return;
   }
 
-  loadPlayers();
-  if (state.players.length < 2) {
-    setMessage("참여자는 2명 이상 필요합니다");
+  const count = readCharacterCount();
+  setupCharacters(count);
+  state.token += 1;
+  const token = state.token;
+  state.running = true;
+  state.phase = "eating";
+  state.shuffleStep = 0;
+  state.ricecakeId = randomInt(0, state.characters.length - 1);
+  state.motionById = { [state.ricecakeId]: "eat" };
+  dom.winnerPanel.hidden = true;
+  setControlsLocked(true);
+  render();
+  setMessage(`${state.ricecakeId + 1}번 캐릭터가 몰래 떡을 먹었습니다. 눈으로 잘 따라가세요.`);
+  popBursts(14, "rice");
+  await wait(2300);
+
+  if (token !== state.token) {
     return;
   }
 
-  state.running = true;
-  state.token += 1;
-  const token = state.token;
-  state.winnerIndex = randomInt(0, state.players.length - 1);
-  state.players.forEach((player) => {
-    player.active = true;
-    player.winner = false;
-  });
-
-  dom.winnerPanel.hidden = true;
-  dom.startButton.disabled = true;
-  dom.namesInput.disabled = true;
-  dom.fileInput.disabled = true;
-  setMessage(CONFIG.start);
-  dom.stageTitle.textContent = CONFIG.start;
-  render();
-  await wait(760);
-
-  let active = activePlayers();
-  while (active.length > 3) {
+  state.phase = "shuffling";
+  for (let round = 1; round <= CONFIG.shuffleRounds; round += 1) {
     if (token !== state.token) {
       return;
     }
-    setMessage(CONFIG.action);
-    dom.stageTitle.textContent = CONFIG.action;
-    shakeActive();
-    await wait(780);
-
-    const batchSize = randomInt(1, Math.max(1, Math.floor(active.length / 3)));
-    eliminateBatch(batchSize);
+    state.shuffleStep = round;
+    const nextOrder = makeShuffleOrder(state.order, round);
+    state.motionById = getMotionMap(state.order, nextOrder, round);
+    state.order = nextOrder;
     render();
-    popBursts(batchSize + 4);
-    await wait(720);
-    active = activePlayers();
+    setMessage(`${round}번째 야바위 섞기 진행 중`);
+    popBursts(10 + round, "spark");
+    await wait(1420);
+    state.motionById = {};
+    render();
+    await wait(220);
   }
 
   if (token !== state.token) {
     return;
   }
 
-  setMessage(CONFIG.final);
-  dom.stageTitle.textContent = CONFIG.final;
-  shakeActive();
-  await wait(1100);
-
-  activePlayers().forEach((player) => {
-    if (player.id !== state.winnerIndex) {
-      player.active = false;
-    }
-  });
-  const winner = state.players[state.winnerIndex];
-  winner.active = true;
-  winner.winner = true;
+  state.phase = "ready";
+  state.running = false;
+  state.motionById = {};
   render();
-  popBursts(44);
-  revealWinner(winner);
+  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 떡 먹은 캐릭터를 공개하세요.");
 }
 
-function eliminateBatch(batchSize) {
-  const candidates = activePlayers().filter((player) => player.id !== state.winnerIndex);
-  shuffle(candidates)
-    .slice(0, batchSize)
-    .forEach((player) => {
-      player.active = false;
-    });
+function makeShuffleOrder(currentOrder, round) {
+  const nextOrder = [...currentOrder];
+  const swaps = Math.max(2, Math.ceil(nextOrder.length / 3));
+  for (let index = 0; index < swaps; index += 1) {
+    const first = randomInt(0, nextOrder.length - 1);
+    let second = randomInt(0, nextOrder.length - 1);
+    while (second === first) {
+      second = randomInt(0, nextOrder.length - 1);
+    }
+    [nextOrder[first], nextOrder[second]] = [nextOrder[second], nextOrder[first]];
+  }
+
+  if (round % 2 === 0 && nextOrder.length > 4) {
+    const moved = nextOrder.shift();
+    nextOrder.splice(randomInt(2, nextOrder.length), 0, moved);
+  }
+
+  if (sameOrder(currentOrder, nextOrder)) {
+    nextOrder.reverse();
+  }
+
+  return nextOrder;
 }
 
-function activePlayers() {
-  return state.players.filter((player) => player.active);
+function getMotionMap(previousOrder, nextOrder, round) {
+  return nextOrder.reduce((motions, characterId, nextIndex) => {
+    const previousIndex = previousOrder.indexOf(characterId);
+    if (previousIndex !== nextIndex) {
+      const distance = Math.abs(previousIndex - nextIndex);
+      const motionIndex = (round + nextIndex + distance) % CONFIG.motions.length;
+      motions[characterId] = CONFIG.motions[motionIndex];
+    }
+    return motions;
+  }, {});
+}
+
+function revealResult() {
+  if (state.phase !== "ready") {
+    return;
+  }
+
+  state.phase = "revealed";
+  state.motionById = { [state.ricecakeId]: "winner" };
+  dom.winnerName.textContent = `${state.ricecakeId + 1}번 캐릭터`;
+  dom.winnerPanel.hidden = false;
+  popBursts(52, "rice");
+  setMessage(`${state.ricecakeId + 1}번 캐릭터가 떡을 먹었습니다.`);
+  render();
+}
+
+function resetGame() {
+  resetToPreview(readCharacterCount());
 }
 
 function render() {
-  const activeCount = activePlayers().length;
-  dom.playerCount.textContent = formatNumber(state.players.length);
-  dom.activeCount.textContent = formatNumber(activeCount);
-  dom.board.innerHTML = state.players
-    .map((player, index) => {
-      const classes = ["player-card"];
-      if (player.active) classes.push("active");
-      if (!player.active) classes.push("out");
-      if (player.winner) classes.push("winner");
-      return '<article class="' + classes.join(" ") + '" style="--delay:' + (index % 8) * 45 + 'ms">' +
-        '<span class="player-icon">' + CONFIG.icon + '</span>' +
-        '<span class="player-name">' + escapeHtml(player.name) + '</span>' +
-      '</article>';
+  const count = state.characters.length;
+  const layout = computeLayout(count);
+  const slots = layout.slots;
+  const positionById = new Map(state.order.map((characterId, slotIndex) => [characterId, slots[slotIndex]]));
+  const isFinalReveal = state.phase === "revealed";
+
+  dom.characterTotal.textContent = formatNumber(count);
+  dom.shuffleCounter.textContent = state.shuffleStep;
+  dom.stageTitle.textContent = stageTitle();
+  dom.stageBadge.textContent = stageBadge();
+  dom.revealButton.hidden = state.phase !== "ready";
+  dom.revealButton.disabled = state.phase !== "ready";
+  dom.startButton.disabled = state.running || state.phase === "ready";
+  dom.characterCount.disabled = state.running || state.phase === "ready";
+  dom.presetButtons.forEach((button) => {
+    button.disabled = state.running || state.phase === "ready";
+  });
+
+  dom.board.dataset.phase = state.phase;
+  dom.board.style.setProperty("--character-count", count);
+  dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
+  dom.board.innerHTML = state.characters
+    .map((character) => {
+      const slot = positionById.get(character.id);
+      const classes = ["character-card"];
+      const motion = state.motionById[character.id];
+      if (motion) {
+        classes.push(`motion-${motion}`);
+      }
+      if (state.phase === "eating" && character.id === state.ricecakeId) {
+        classes.push("eating");
+      }
+      if (state.phase === "shuffling" || state.phase === "ready") {
+        classes.push("mystery");
+      }
+      if (isFinalReveal && character.id === state.ricecakeId) {
+        classes.push("revealed");
+      }
+      if (isFinalReveal && character.id !== state.ricecakeId) {
+        classes.push("cleared");
+      }
+
+      return `
+        <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}">
+          <div class="character-inner">
+            <span class="number-badge">${character.id + 1}</span>
+            <span class="question-mark">?</span>
+            <img class="character-image" src="${CONFIG.characterImage}" alt="" draggable="false" />
+            <span class="ricecake-piece" aria-hidden="true"></span>
+          </div>
+          <strong>${character.label}</strong>
+        </article>
+      `;
     })
     .join("");
 
-  if (!state.running) {
-    dom.stageTitle.textContent = CONFIG.waiting;
-    setMessage(CONFIG.waiting);
+  if (state.phase === "idle") {
+    dom.winnerPanel.hidden = true;
+    setControlsLocked(false);
+    setMessage("캐릭터 수를 정하고 게임을 시작하세요.");
   }
 }
 
-function shakeActive() {
-  dom.board.querySelectorAll(".player-card.active").forEach((card, index) => {
-    card.animate(
-      [
-        { transform: "translateY(0) rotate(0deg)" },
-        { transform: "translateY(-10px) rotate(" + (index % 2 === 0 ? 2 : -2) + "deg)" },
-        { transform: "translateY(0) rotate(0deg)" },
-      ],
-      {
-        duration: 520,
-        delay: (index % 9) * 28,
-        easing: "cubic-bezier(.2,.8,.2,1)",
-      },
-    );
+function setControlsLocked(locked) {
+  dom.characterCount.disabled = locked;
+  dom.startButton.disabled = locked;
+  dom.presetButtons.forEach((button) => {
+    button.disabled = locked;
   });
 }
 
-function popBursts(count) {
+function stageTitle() {
+  if (state.phase === "eating") return "몰래 떡 먹는 중";
+  if (state.phase === "shuffling") return `${state.shuffleStep}번째 야바위`;
+  if (state.phase === "ready") return "결과 확인 대기";
+  if (state.phase === "revealed") return "떡 먹은 캐릭터 공개";
+  return "대기 중";
+}
+
+function stageBadge() {
+  if (state.phase === "eating") return "EAT";
+  if (state.phase === "shuffling") return `MIX ${state.shuffleStep}`;
+  if (state.phase === "ready") return "CHECK";
+  if (state.phase === "revealed") return "OPEN";
+  return "READY";
+}
+
+function computeLayout(count) {
+  const boardWidth = dom.board.clientWidth || 900;
+  const boardHeight = dom.board.clientHeight || 560;
+  const spaceBasedColumns = clamp(Math.floor(boardWidth / 136), 3, count);
+  const preferredColumns = count <= 4 ? count : Math.ceil(Math.sqrt(count * 1.35));
+  const columns = Math.min(preferredColumns, spaceBasedColumns, count);
+  const rows = Math.ceil(count / columns);
+  const horizontalWidth = (boardWidth / (columns + 1)) * 0.86;
+  const verticalWidth = ((boardHeight / (rows + 1)) - 30) / 1.35;
+  const cardWidth = Math.floor(clamp(Math.min(horizontalWidth, verticalWidth), 78, 158));
+  const slots = Array.from({ length: count }, (_, slotIndex) => {
+    const row = Math.floor(slotIndex / columns);
+    const rowStart = row * columns;
+    const itemsInRow = Math.min(columns, count - rowStart);
+    const col = slotIndex - rowStart;
+    const x = ((col + 1) / (itemsInRow + 1)) * 100;
+    const y = rows === 1 ? 50 : ((row + 1) / (rows + 1)) * 100;
+    return {
+      x: round(x),
+      y: round(y),
+      z: 10 + row,
+    };
+  });
+  return { slots, cardWidth };
+}
+
+function popBursts(count, type) {
   const rect = dom.effectLayer.getBoundingClientRect();
   for (let index = 0; index < count; index += 1) {
     const burst = document.createElement("span");
-    burst.className = "burst";
-    burst.style.left = randomInt(8, Math.max(9, Math.floor(rect.width - 20))) + "px";
-    burst.style.top = randomInt(8, Math.max(9, Math.floor(rect.height - 20))) + "px";
-    burst.style.setProperty("--x", randomInt(-120, 120) + "px");
-    burst.style.setProperty("--y", randomInt(-120, 120) + "px");
-    burst.style.animationDelay = randomInt(0, 180) + "ms";
+    burst.className = `burst ${type === "rice" ? "rice-burst" : "spark-burst"}`;
+    burst.style.left = `${randomInt(18, Math.max(20, Math.floor(rect.width - 24)))}px`;
+    burst.style.top = `${randomInt(18, Math.max(20, Math.floor(rect.height - 24)))}px`;
+    burst.style.setProperty("--x", `${randomInt(-150, 150)}px`);
+    burst.style.setProperty("--y", `${randomInt(-150, 150)}px`);
+    burst.style.animationDelay = `${randomInt(0, 220)}ms`;
     dom.effectLayer.appendChild(burst);
     window.setTimeout(() => burst.remove(), 1200);
   }
 }
 
-function revealWinner(winner) {
-  state.running = false;
-  dom.startButton.disabled = false;
-  dom.namesInput.disabled = false;
-  dom.fileInput.disabled = false;
-  dom.winnerName.textContent = winner.name;
-  dom.winnerPanel.hidden = false;
-  dom.stageTitle.textContent = "우승자 공개";
-  setMessage(winner.name + " - " + CONFIG.winnerLine);
-}
-
-function resetGame() {
-  state.token += 1;
-  state.running = false;
-  state.players.forEach((player) => {
-    player.active = true;
-    player.winner = false;
-  });
-  state.winnerIndex = -1;
-  dom.startButton.disabled = false;
-  dom.namesInput.disabled = false;
-  dom.fileInput.disabled = false;
-  dom.winnerPanel.hidden = true;
-  render();
-}
-
 function setMessage(text) {
   dom.message.textContent = text;
+}
+
+function sameOrder(first, second) {
+  return first.every((value, index) => value === second[index]);
+}
+
+function characterAccent(index) {
+  const colors = ["#f2d78b", "#ff7066", "#5bd6ff", "#90f0a8", "#b98cff", "#ffb35c"];
+  return colors[index % colors.length];
 }
 
 function wait(ms) {
@@ -307,24 +358,14 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function shuffle(values) {
-  const copy = [...values];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomInt(0, index);
-    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
-  }
-  return copy;
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function round(value) {
+  return Math.round(value * 100) / 100;
 }
 
 function formatNumber(value) {
   return new Intl.NumberFormat("ko-KR").format(value);
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
