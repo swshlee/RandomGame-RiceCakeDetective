@@ -6,6 +6,9 @@ const CONFIG = {
     hard: { label: "Hard", count: 7 },
   },
   shuffleRounds: 5,
+  shuffleMovesPerRound: 4,
+  shuffleMoveMs: 820,
+  shuffleSettleMs: 180,
   characterImages: {
     idle: "assets/sprite-idle.png",
     eat: "assets/sprite-eat.png",
@@ -17,7 +20,6 @@ const CONFIG = {
     shuffle: "assets/sound-shuffle.wav",
     fanfare: "assets/sound-fanfare.wav",
   },
-  motions: ["jump", "slide"],
 };
 
 const audio = {
@@ -54,6 +56,7 @@ const state = {
   token: 0,
   shuffleStep: 0,
   motionById: {},
+  travelById: {},
 };
 
 init();
@@ -114,6 +117,7 @@ function resetToPreview(count) {
   state.shuffleStep = 0;
   state.ricecakeId = -1;
   state.motionById = {};
+  state.travelById = {};
   setupCharacters(count);
   dom.winnerPanel.hidden = true;
   render();
@@ -122,7 +126,6 @@ function resetToPreview(count) {
 function setupCharacters(count) {
   state.characters = Array.from({ length: count }, (_, index) => ({
     id: index,
-    label: `${index + 1}번 캐릭터`,
     accent: characterAccent(index),
   }));
   state.order = state.characters.map((character) => character.id);
@@ -146,7 +149,7 @@ async function startGame() {
   dom.winnerPanel.hidden = true;
   setControlsLocked(true);
   render();
-  setMessage(`${state.ricecakeId + 1}번 캐릭터가 스스로 떡을 먹었습니다. 이제 움직임을 잘 따라가세요.`);
+  setMessage("떡 먹은 캐릭터가 움직이는 위치를 잘 따라가세요.");
   playEatSound();
   popBursts(14, "rice");
   await wait(2400);
@@ -164,17 +167,27 @@ async function startGame() {
     }
 
     state.shuffleStep = round;
-    const nextOrder = makeShuffleOrder(state.order, round);
-    state.motionById = getMotionMap(state.order, nextOrder, round);
-    state.order = nextOrder;
-    render();
-    setMessage(`${round}번째 섞기: 캐릭터들이 점프와 슬라이딩으로 자리를 바꿉니다.`);
-    popBursts(10 + round, "spark");
-    await wait(1480);
+    setMessage(`${round}번째 섞기: 캐릭터들이 좌우로 자리를 바꿉니다.`);
+    for (let move = 1; move <= CONFIG.shuffleMovesPerRound; move += 1) {
+      if (token !== state.token) {
+        stopShuffleSound();
+        return;
+      }
+
+      const previousOrder = state.order;
+      const nextOrder = makeShuffleOrder(previousOrder, round, move);
+      state.motionById = getMotionMap(previousOrder, nextOrder);
+      state.travelById = getTravelMap(previousOrder, nextOrder);
+      state.order = nextOrder;
+      render();
+      popBursts(4 + round, "spark");
+      await wait(CONFIG.shuffleMoveMs);
+    }
 
     state.motionById = {};
+    state.travelById = {};
     render();
-    await wait(240);
+    await wait(CONFIG.shuffleSettleMs);
   }
 
   if (token !== state.token) {
@@ -186,25 +199,24 @@ async function startGame() {
   state.phase = "ready";
   state.running = false;
   state.motionById = {};
+  state.travelById = {};
   render();
-  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 떡 먹은 캐릭터를 공개하세요.");
+  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 마지막 위치를 공개하세요.");
 }
 
-function makeShuffleOrder(currentOrder, round) {
-  const nextOrder = [...currentOrder];
-  const swaps = Math.max(2, Math.ceil(nextOrder.length / 3));
-  for (let index = 0; index < swaps; index += 1) {
-    const first = randomInt(0, nextOrder.length - 1);
-    let second = randomInt(0, nextOrder.length - 1);
-    while (second === first) {
-      second = randomInt(0, nextOrder.length - 1);
-    }
-    [nextOrder[first], nextOrder[second]] = [nextOrder[second], nextOrder[first]];
-  }
+function makeShuffleOrder(currentOrder, round, move) {
+  const direction = (round + move) % 2 === 0 ? 1 : -1;
+  const offset = randomInt(1, currentOrder.length - 1);
+  const nextOrder = currentOrder.map((_, index) => {
+    const sourceIndex = (index + direction * offset + currentOrder.length) % currentOrder.length;
+    return currentOrder[sourceIndex];
+  });
 
-  if (round % 2 === 0 && nextOrder.length > 4) {
-    const moved = nextOrder.shift();
-    nextOrder.splice(randomInt(2, nextOrder.length), 0, moved);
+  const swapCount = Math.max(1, Math.floor(nextOrder.length / 3));
+  for (let index = 0; index < swapCount; index += 1) {
+    const first = randomInt(0, nextOrder.length - 2);
+    const second = first + 1;
+    [nextOrder[first], nextOrder[second]] = [nextOrder[second], nextOrder[first]];
   }
 
   if (sameOrder(currentOrder, nextOrder)) {
@@ -214,15 +226,31 @@ function makeShuffleOrder(currentOrder, round) {
   return nextOrder;
 }
 
-function getMotionMap(previousOrder, nextOrder, round) {
+function getMotionMap(previousOrder, nextOrder) {
   return nextOrder.reduce((motions, characterId, nextIndex) => {
     const previousIndex = previousOrder.indexOf(characterId);
     if (previousIndex !== nextIndex) {
-      const distance = Math.abs(previousIndex - nextIndex);
-      motions[characterId] = (round + nextIndex + distance) % 2 === 0 ? "jump" : "slide";
+      motions[characterId] = nextIndex > previousIndex ? "dash-right" : "dash-left";
     }
     return motions;
   }, {});
+}
+
+function getTravelMap(previousOrder, nextOrder) {
+  const boardWidth = dom.board.clientWidth || 900;
+  return nextOrder.reduce((travels, characterId, nextIndex) => {
+    const previousIndex = previousOrder.indexOf(characterId);
+    if (previousIndex !== nextIndex) {
+      const previousX = slotX(previousIndex, nextOrder.length);
+      const nextX = slotX(nextIndex, nextOrder.length);
+      travels[characterId] = round(((previousX - nextX) / 100) * boardWidth);
+    }
+    return travels;
+  }, {});
+}
+
+function slotX(slotIndex, count) {
+  return ((slotIndex + 1) / (count + 1)) * 100;
 }
 
 function revealResult() {
@@ -234,11 +262,18 @@ function revealResult() {
   playFanfare();
   state.phase = "revealed";
   state.motionById = { [state.ricecakeId]: "eat" };
-  dom.winnerName.textContent = `${state.ricecakeId + 1}번 캐릭터`;
+  state.travelById = {};
+  const finalPosition = ricecakePosition();
+  dom.winnerName.textContent = `왼쪽에서 ${finalPosition}번째`;
   dom.winnerPanel.hidden = false;
   popBursts(52, "rice");
-  setMessage(`${state.ricecakeId + 1}번 캐릭터가 떡을 먹었습니다.`);
+  setMessage(`떡 먹은 캐릭터는 왼쪽에서 ${finalPosition}번째 위치에 있습니다.`);
   render();
+}
+
+function ricecakePosition() {
+  const index = state.order.indexOf(state.ricecakeId);
+  return index >= 0 ? index + 1 : 0;
 }
 
 function resetGame() {
@@ -431,10 +466,12 @@ function render() {
   dom.board.dataset.phase = state.phase;
   dom.board.style.setProperty("--character-count", count);
   dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
+  dom.board.style.setProperty("--shuffle-move-duration", `${CONFIG.shuffleMoveMs}ms`);
   dom.board.innerHTML = state.characters
     .map((character) => {
       const slot = positionById.get(character.id);
       const motion = state.motionById[character.id] || "";
+      const travelX = state.travelById[character.id] || 0;
       const imageSource = imageForCharacter(character.id, motion);
       const classes = ["character-card"];
 
@@ -444,9 +481,6 @@ function render() {
       if (state.phase === "eating" && character.id === state.ricecakeId) {
         classes.push("eating");
       }
-      if (state.phase === "shuffling" || state.phase === "ready") {
-        classes.push("mystery");
-      }
       if (isFinalReveal && character.id === state.ricecakeId) {
         classes.push("revealed");
       }
@@ -455,13 +489,10 @@ function render() {
       }
 
       return `
-        <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}">
+        <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}; --travel-x:${travelX}px">
           <div class="character-inner">
-            <span class="number-badge">${character.id + 1}</span>
-            <span class="question-mark">?</span>
             <img class="character-image" src="${imageSource}" alt="" draggable="false" />
           </div>
-          <strong>${character.label}</strong>
         </article>
       `;
     })
@@ -501,7 +532,7 @@ function stageTitle() {
   if (state.phase === "eating") return "몰래 떡 먹는 중";
   if (state.phase === "shuffling") return `${state.shuffleStep}번째 야바위`;
   if (state.phase === "ready") return "결과 확인 대기";
-  if (state.phase === "revealed") return "떡 먹은 캐릭터 공개";
+  if (state.phase === "revealed") return "최종 위치 공개";
   return "대기 중";
 }
 

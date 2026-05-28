@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>떡먹은 사람 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=difficulty1" />
+    <link rel="stylesheet" href="styles.css?v=position1" />
   </head>
   <body>
     <main class="app-shell">
@@ -55,7 +55,7 @@
       <section class="stage-panel" aria-label="떡 야바위 무대">
         <div class="stage-top">
           <div>
-            <p>한 캐릭터가 스스로 떡을 먹고, 모두가 일렬로 뒤섞입니다.</p>
+            <p>떡 먹은 캐릭터가 마지막에 선 위치를 따라가세요.</p>
             <h2 id="stageTitle">대기 중</h2>
           </div>
           <span id="stageBadge">READY</span>
@@ -68,13 +68,13 @@
         </div>
 
         <div class="winner-panel" id="winnerPanel" hidden>
-          <span>떡 먹은 캐릭터</span>
+          <span>떡 먹은 캐릭터의 마지막 위치</span>
           <strong id="winnerName">--</strong>
-          <p>증거 떡이 여기서 나왔습니다.</p>
+          <p>왼쪽부터 센 위치입니다.</p>
         </div>
       </section>
     </main>
 
-    <script src="app.js?v=difficulty1"></script>
+    <script src="app.js?v=position1"></script>
   </body>
 </html>
