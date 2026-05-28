@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>떡먹은 긍정이 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=answer-motion1" />
+    <link rel="stylesheet" href="styles.css?v=answer-motion2" />
   </head>
   <body>
     <main class="app-shell">
@@ -44,7 +44,7 @@
         </div>
 
         <label id="guessPanel" class="guess-field" hidden>
-          <span>마지막 위치 입력</span>
+          <span>정답 위치 입력</span>
           <input
             id="positionGuess"
             type="password"
@@ -52,7 +52,7 @@
             pattern="[0-9]*"
             maxlength="2"
             autocomplete="off"
-            placeholder="비밀 입력"
+            placeholder="1~5"
           />
         </label>
 
@@ -62,7 +62,7 @@
           <button id="resetButton" class="ghost-button" type="button">초기화</button>
         </div>
 
-        <p id="message" class="message">난이도를 정하고 게임을 시작하세요.</p>
+        <p id="message" class="message">난이도와 정답 위치를 정하고 게임을 시작하세요.</p>
       </section>
 
       <section class="stage-panel" aria-label="떡 야바위 무대">
@@ -88,6 +88,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=answer-motion1"></script>
+    <script src="app.js?v=answer-motion2"></script>
   </body>
 </html>

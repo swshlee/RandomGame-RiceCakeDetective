@@ -59,7 +59,8 @@ const state = {
   shuffleStep: 0,
   motionById: {},
   travelById: {},
-  positionGuess: "",
+  targetPositionInput: "",
+  targetPosition: 0,
 };
 
 init();
@@ -86,9 +87,9 @@ function bindEvents() {
   dom.revealButton.addEventListener("click", revealResult);
   dom.resetButton.addEventListener("click", resetGame);
   dom.positionGuess.addEventListener("input", () => {
-    state.positionGuess = dom.positionGuess.value.replace(/\D/g, "").slice(0, 2);
-    dom.positionGuess.value = state.positionGuess;
-    syncGuessControls();
+    state.targetPositionInput = dom.positionGuess.value.replace(/\D/g, "").slice(0, 2);
+    dom.positionGuess.value = state.targetPositionInput;
+    syncStartControls();
   });
   window.addEventListener("resize", () => {
     if (!state.running) {
@@ -126,7 +127,8 @@ function resetToPreview(count) {
   state.ricecakeId = -1;
   state.motionById = {};
   state.travelById = {};
-  state.positionGuess = "";
+  state.targetPositionInput = "";
+  state.targetPosition = 0;
   dom.positionGuess.value = "";
   setupCharacters(count);
   dom.winnerPanel.hidden = true;
@@ -142,7 +144,15 @@ function setupCharacters(count) {
 }
 
 async function startGame() {
-  if (state.running) {
+  if (state.running || state.phase !== "idle") {
+    return;
+  }
+
+  const targetPosition = readTargetPosition();
+  if (!targetPosition) {
+    setMessage(`정답 위치를 1부터 ${readCharacterCount()} 사이로 비밀 입력하세요.`);
+    syncStartControls();
+    dom.positionGuess.focus();
     return;
   }
 
@@ -154,7 +164,8 @@ async function startGame() {
   state.running = true;
   state.phase = "eating";
   state.shuffleStep = 0;
-  state.positionGuess = "";
+  state.targetPosition = targetPosition;
+  state.targetPositionInput = "";
   dom.positionGuess.value = "";
   state.ricecakeId = randomInt(0, state.characters.length - 1);
   state.motionById = { [state.ricecakeId]: "eat" };
@@ -187,7 +198,10 @@ async function startGame() {
       }
 
       const previousOrder = state.order;
-      const nextOrder = makeShuffleOrder(previousOrder, round, move);
+      const isFinalMove = round === CONFIG.shuffleRounds && move === CONFIG.shuffleMovesPerRound;
+      const nextOrder = isFinalMove
+        ? makeTargetOrder(previousOrder, state.ricecakeId, state.targetPosition - 1)
+        : makeShuffleOrder(previousOrder, round, move);
       state.motionById = getMotionMap(previousOrder, nextOrder, round, move);
       state.travelById = getTravelMap(previousOrder, nextOrder);
       state.order = nextOrder;
@@ -213,8 +227,7 @@ async function startGame() {
   state.motionById = {};
   state.travelById = {};
   render();
-  setMessage("섞기가 끝났습니다. 마지막 위치를 비밀로 입력한 뒤 결과를 확인하세요.");
-  dom.positionGuess.focus();
+  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 정답 위치를 공개하세요.");
 }
 
 function makeShuffleOrder(currentOrder, round, move) {
@@ -234,6 +247,29 @@ function makeShuffleOrder(currentOrder, round, move) {
 
   if (sameOrder(currentOrder, nextOrder)) {
     nextOrder.reverse();
+  }
+
+  return nextOrder;
+}
+
+function makeTargetOrder(currentOrder, targetCharacterId, targetIndex) {
+  const others = currentOrder.filter((characterId) => characterId !== targetCharacterId);
+  if (others.length > 1) {
+    const shifted = others.shift();
+    others.push(shifted);
+  }
+
+  const nextOrder = [];
+  for (let index = 0; index < currentOrder.length; index += 1) {
+    nextOrder.push(index === targetIndex ? targetCharacterId : others.shift());
+  }
+
+  if (sameOrder(currentOrder, nextOrder) && currentOrder.length > 2) {
+    const swapIndex = targetIndex === 0 ? 1 : 0;
+    const nextSwapIndex = swapIndex + 1 === targetIndex ? swapIndex + 2 : swapIndex + 1;
+    if (nextSwapIndex < nextOrder.length) {
+      [nextOrder[swapIndex], nextOrder[nextSwapIndex]] = [nextOrder[nextSwapIndex], nextOrder[swapIndex]];
+    }
   }
 
   return nextOrder;
@@ -269,8 +305,7 @@ function slotX(slotIndex, count) {
 }
 
 function revealResult() {
-  if (state.phase !== "ready" || !isValidGuess()) {
-    syncGuessControls();
+  if (state.phase !== "ready") {
     return;
   }
 
@@ -280,12 +315,10 @@ function revealResult() {
   state.motionById = { [state.ricecakeId]: "eat" };
   state.travelById = {};
   const finalPosition = ricecakePosition();
-  const guessedPosition = Number.parseInt(state.positionGuess, 10);
-  const isCorrect = guessedPosition === finalPosition;
   dom.winnerName.textContent = `왼쪽에서 ${finalPosition}번째`;
   dom.winnerPanel.hidden = false;
   popBursts(52, "rice");
-  setMessage(isCorrect ? "정답입니다. 떡 먹은 긍정이를 정확히 찾았습니다." : `아쉽습니다. 입력한 위치는 왼쪽에서 ${guessedPosition}번째였습니다.`);
+  setMessage(`입력한 정답 위치는 왼쪽에서 ${finalPosition}번째였습니다.`);
   render();
 }
 
@@ -475,11 +508,11 @@ function render() {
   dom.stageTitle.textContent = stageTitle();
   dom.stageBadge.textContent = stageBadge();
   dom.revealButton.hidden = state.phase !== "ready";
-  dom.guessPanel.hidden = state.phase !== "ready";
-  dom.positionGuess.disabled = state.phase !== "ready";
+  dom.guessPanel.hidden = state.phase !== "idle";
+  dom.positionGuess.disabled = state.phase !== "idle";
   dom.positionGuess.placeholder = `1~${count}`;
-  dom.revealButton.disabled = state.phase !== "ready" || !isValidGuess();
-  dom.startButton.disabled = state.running || state.phase === "ready";
+  dom.revealButton.disabled = state.phase !== "ready";
+  dom.startButton.disabled = state.running || state.phase !== "idle" || !isValidTargetPosition();
   dom.difficultyButtons.forEach((button) => {
     button.disabled = state.running || state.phase === "ready";
   });
@@ -522,7 +555,8 @@ function render() {
   if (state.phase === "idle") {
     dom.winnerPanel.hidden = true;
     setControlsLocked(false);
-    setMessage("난이도를 정하고 게임을 시작하세요.");
+    syncStartControls();
+    setMessage("난이도와 정답 위치를 정하고 게임을 시작하세요.");
   }
 }
 
@@ -542,17 +576,22 @@ function imageForCharacter(characterId, motion) {
   return CONFIG.characterImages.idle;
 }
 
-function syncGuessControls() {
-  dom.revealButton.disabled = state.phase !== "ready" || !isValidGuess();
+function syncStartControls() {
+  dom.startButton.disabled = state.running || state.phase !== "idle" || !isValidTargetPosition();
 }
 
-function isValidGuess() {
-  const guess = Number.parseInt(state.positionGuess, 10);
-  return state.phase === "ready" && Number.isInteger(guess) && guess >= 1 && guess <= state.characters.length;
+function readTargetPosition() {
+  const targetPosition = Number.parseInt(state.targetPositionInput, 10);
+  return Number.isInteger(targetPosition) && targetPosition >= 1 && targetPosition <= state.characters.length ? targetPosition : 0;
+}
+
+function isValidTargetPosition() {
+  return Boolean(readTargetPosition());
 }
 
 function setControlsLocked(locked) {
   dom.startButton.disabled = locked;
+  dom.positionGuess.disabled = locked;
   dom.difficultyButtons.forEach((button) => {
     button.disabled = locked;
   });

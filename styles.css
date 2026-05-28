@@ -386,6 +386,7 @@ input:disabled {
 .character-card.motion-roll-right,
 .character-card.motion-slide {
   z-index: 60;
+  width: min(310px, calc(var(--card-width) + var(--card-width) + 16px));
   animation: cardDashTravel var(--shuffle-move-duration) linear both;
 }
 
@@ -538,32 +539,32 @@ input:disabled {
 @keyframes jumpTravelMotion {
   0%,
   100% {
-    transform: translateY(0) rotate(0deg) scale(1);
+    transform: translateY(0) rotate(0deg);
   }
   25% {
-    transform: translateY(-58px) rotate(var(--move-lean)) scale(1.04);
+    transform: translateY(-58px) rotate(var(--move-lean));
   }
   50% {
-    transform: translateY(-84px) rotate(0deg) scale(1.06);
+    transform: translateY(-84px) rotate(0deg);
   }
   75% {
-    transform: translateY(-36px) rotate(var(--move-counter-lean)) scale(1.02);
+    transform: translateY(-36px) rotate(var(--move-counter-lean));
   }
 }
 
 @keyframes rollTravelMotion {
   0%,
   100% {
-    transform: translateY(0) rotate(0deg) scale(1);
+    transform: translateY(0) rotate(0deg);
   }
   24% {
-    transform: translateY(22px) rotate(var(--roll-a)) scale(0.98);
+    transform: translateY(22px) rotate(var(--roll-a));
   }
   52% {
-    transform: translateY(34px) rotate(var(--roll-b)) scale(0.96);
+    transform: translateY(34px) rotate(var(--roll-b));
   }
   78% {
-    transform: translateY(18px) rotate(var(--roll-c)) scale(0.98);
+    transform: translateY(18px) rotate(var(--roll-c));
   }
 }
 
