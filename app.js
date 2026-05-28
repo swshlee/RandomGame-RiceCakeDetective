@@ -35,6 +35,8 @@ const dom = {
   startButton: document.getElementById("startButton"),
   revealButton: document.getElementById("revealButton"),
   resetButton: document.getElementById("resetButton"),
+  guessPanel: document.getElementById("guessPanel"),
+  positionGuess: document.getElementById("positionGuess"),
   characterTotal: document.getElementById("characterTotal"),
   shuffleCounter: document.getElementById("shuffleCounter"),
   message: document.getElementById("message"),
@@ -57,6 +59,7 @@ const state = {
   shuffleStep: 0,
   motionById: {},
   travelById: {},
+  positionGuess: "",
 };
 
 init();
@@ -82,6 +85,11 @@ function bindEvents() {
   dom.startButton.addEventListener("click", startGame);
   dom.revealButton.addEventListener("click", revealResult);
   dom.resetButton.addEventListener("click", resetGame);
+  dom.positionGuess.addEventListener("input", () => {
+    state.positionGuess = dom.positionGuess.value.replace(/\D/g, "").slice(0, 2);
+    dom.positionGuess.value = state.positionGuess;
+    syncGuessControls();
+  });
   window.addEventListener("resize", () => {
     if (!state.running) {
       render();
@@ -118,6 +126,8 @@ function resetToPreview(count) {
   state.ricecakeId = -1;
   state.motionById = {};
   state.travelById = {};
+  state.positionGuess = "";
+  dom.positionGuess.value = "";
   setupCharacters(count);
   dom.winnerPanel.hidden = true;
   render();
@@ -144,12 +154,14 @@ async function startGame() {
   state.running = true;
   state.phase = "eating";
   state.shuffleStep = 0;
+  state.positionGuess = "";
+  dom.positionGuess.value = "";
   state.ricecakeId = randomInt(0, state.characters.length - 1);
   state.motionById = { [state.ricecakeId]: "eat" };
   dom.winnerPanel.hidden = true;
   setControlsLocked(true);
   render();
-  setMessage("떡 먹은 캐릭터가 움직이는 위치를 잘 따라가세요.");
+  setMessage("떡 먹은 긍정이가 움직이는 위치를 잘 따라가세요.");
   playEatSound();
   popBursts(14, "rice");
   await wait(2400);
@@ -176,7 +188,7 @@ async function startGame() {
 
       const previousOrder = state.order;
       const nextOrder = makeShuffleOrder(previousOrder, round, move);
-      state.motionById = getMotionMap(previousOrder, nextOrder);
+      state.motionById = getMotionMap(previousOrder, nextOrder, round, move);
       state.travelById = getTravelMap(previousOrder, nextOrder);
       state.order = nextOrder;
       render();
@@ -201,7 +213,8 @@ async function startGame() {
   state.motionById = {};
   state.travelById = {};
   render();
-  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 마지막 위치를 공개하세요.");
+  setMessage("섞기가 끝났습니다. 마지막 위치를 비밀로 입력한 뒤 결과를 확인하세요.");
+  dom.positionGuess.focus();
 }
 
 function makeShuffleOrder(currentOrder, round, move) {
@@ -226,11 +239,13 @@ function makeShuffleOrder(currentOrder, round, move) {
   return nextOrder;
 }
 
-function getMotionMap(previousOrder, nextOrder) {
+function getMotionMap(previousOrder, nextOrder, round, move) {
   return nextOrder.reduce((motions, characterId, nextIndex) => {
     const previousIndex = previousOrder.indexOf(characterId);
     if (previousIndex !== nextIndex) {
-      motions[characterId] = nextIndex > previousIndex ? "dash-right" : "dash-left";
+      const direction = nextIndex > previousIndex ? "right" : "left";
+      const style = (round + move + nextIndex) % 2 === 0 ? "jump" : "roll";
+      motions[characterId] = `${style}-${direction}`;
     }
     return motions;
   }, {});
@@ -254,7 +269,8 @@ function slotX(slotIndex, count) {
 }
 
 function revealResult() {
-  if (state.phase !== "ready") {
+  if (state.phase !== "ready" || !isValidGuess()) {
+    syncGuessControls();
     return;
   }
 
@@ -264,10 +280,12 @@ function revealResult() {
   state.motionById = { [state.ricecakeId]: "eat" };
   state.travelById = {};
   const finalPosition = ricecakePosition();
+  const guessedPosition = Number.parseInt(state.positionGuess, 10);
+  const isCorrect = guessedPosition === finalPosition;
   dom.winnerName.textContent = `왼쪽에서 ${finalPosition}번째`;
   dom.winnerPanel.hidden = false;
   popBursts(52, "rice");
-  setMessage(`떡 먹은 캐릭터는 왼쪽에서 ${finalPosition}번째 위치에 있습니다.`);
+  setMessage(isCorrect ? "정답입니다. 떡 먹은 긍정이를 정확히 찾았습니다." : `아쉽습니다. 입력한 위치는 왼쪽에서 ${guessedPosition}번째였습니다.`);
   render();
 }
 
@@ -457,7 +475,10 @@ function render() {
   dom.stageTitle.textContent = stageTitle();
   dom.stageBadge.textContent = stageBadge();
   dom.revealButton.hidden = state.phase !== "ready";
-  dom.revealButton.disabled = state.phase !== "ready";
+  dom.guessPanel.hidden = state.phase !== "ready";
+  dom.positionGuess.disabled = state.phase !== "ready";
+  dom.positionGuess.placeholder = `1~${count}`;
+  dom.revealButton.disabled = state.phase !== "ready" || !isValidGuess();
   dom.startButton.disabled = state.running || state.phase === "ready";
   dom.difficultyButtons.forEach((button) => {
     button.disabled = state.running || state.phase === "ready";
@@ -512,13 +533,22 @@ function imageForCharacter(characterId, motion) {
   if (state.phase === "revealed" && characterId === state.ricecakeId) {
     return CONFIG.characterImages.eat;
   }
-  if (motion === "jump") {
+  if (motion === "jump" || motion.startsWith("jump")) {
     return CONFIG.characterImages.jump;
   }
-  if (motion === "slide") {
+  if (motion === "slide" || motion.startsWith("roll")) {
     return CONFIG.characterImages.slide;
   }
   return CONFIG.characterImages.idle;
+}
+
+function syncGuessControls() {
+  dom.revealButton.disabled = state.phase !== "ready" || !isValidGuess();
+}
+
+function isValidGuess() {
+  const guess = Number.parseInt(state.positionGuess, 10);
+  return state.phase === "ready" && Number.isInteger(guess) && guess >= 1 && guess <= state.characters.length;
 }
 
 function setControlsLocked(locked) {

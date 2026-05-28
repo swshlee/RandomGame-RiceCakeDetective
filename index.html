@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>떡먹은 사람 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=position1" />
+    <title>떡먹은 긍정이 찾기</title>
+    <link rel="stylesheet" href="styles.css?v=answer-motion1" />
   </head>
   <body>
     <main class="app-shell">
       <section class="control-panel" aria-label="게임 설정">
         <header class="brand">
-          <p>Rice Cake Yabawi Console</p>
-          <h1>떡먹은 사람 찾기</h1>
+          <p>Positive Eating Ricecake Yabawi</p>
+          <h1>떡먹은 긍정이 찾기</h1>
         </header>
 
         <div class="difficulty-field">
@@ -43,6 +43,19 @@
           </div>
         </div>
 
+        <label id="guessPanel" class="guess-field" hidden>
+          <span>마지막 위치 입력</span>
+          <input
+            id="positionGuess"
+            type="password"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="2"
+            autocomplete="off"
+            placeholder="비밀 입력"
+          />
+        </label>
+
         <div class="actions">
           <button id="startButton" class="primary-button" type="button">게임시작</button>
           <button id="revealButton" class="primary-button reveal-button" type="button" hidden>결과 확인</button>
@@ -55,7 +68,7 @@
       <section class="stage-panel" aria-label="떡 야바위 무대">
         <div class="stage-top">
           <div>
-            <p>떡 먹은 캐릭터가 마지막에 선 위치를 따라가세요.</p>
+            <p>떡 먹은 긍정이가 마지막에 선 위치를 따라가세요.</p>
             <h2 id="stageTitle">대기 중</h2>
           </div>
           <span id="stageBadge">READY</span>
@@ -68,13 +81,13 @@
         </div>
 
         <div class="winner-panel" id="winnerPanel" hidden>
-          <span>떡 먹은 캐릭터의 마지막 위치</span>
+          <span>떡 먹은 긍정이의 마지막 위치</span>
           <strong id="winnerName">--</strong>
           <p>왼쪽부터 센 위치입니다.</p>
         </div>
       </section>
     </main>
 
-    <script src="app.js?v=position1"></script>
+    <script src="app.js?v=answer-motion1"></script>
   </body>
 </html>
