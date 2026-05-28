@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>떡먹은 사람 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=sound2" />
+    <link rel="stylesheet" href="styles.css?v=difficulty1" />
   </head>
   <body>
     <main class="app-shell">
@@ -14,16 +14,22 @@
           <h1>떡먹은 사람 찾기</h1>
         </header>
 
-        <label class="count-input">
-          <span>야바위할 캐릭터 수</span>
-          <input id="characterCount" type="number" min="3" max="12" value="8" inputmode="numeric" />
-        </label>
-
-        <div class="quick-counts" aria-label="빠른 캐릭터 수 선택">
-          <button type="button" data-count="4">4명</button>
-          <button type="button" data-count="6">6명</button>
-          <button type="button" data-count="8">8명</button>
-          <button type="button" data-count="10">10명</button>
+        <div class="difficulty-field">
+          <span>난이도</span>
+          <div class="difficulty-select" role="group" aria-label="난이도 선택">
+            <button type="button" data-difficulty="easy" aria-pressed="false">
+              <span>Easy</span>
+              <strong>3명</strong>
+            </button>
+            <button type="button" data-difficulty="normal" aria-pressed="true">
+              <span>Normal</span>
+              <strong>5명</strong>
+            </button>
+            <button type="button" data-difficulty="hard" aria-pressed="false">
+              <span>Hard</span>
+              <strong>7명</strong>
+            </button>
+          </div>
         </div>
 
         <div class="stats">
@@ -43,7 +49,7 @@
           <button id="resetButton" class="ghost-button" type="button">초기화</button>
         </div>
 
-        <p id="message" class="message">캐릭터 수를 정하고 게임을 시작하세요.</p>
+        <p id="message" class="message">난이도를 정하고 게임을 시작하세요.</p>
       </section>
 
       <section class="stage-panel" aria-label="떡 야바위 무대">
@@ -69,6 +75,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=sound2"></script>
+    <script src="app.js?v=difficulty1"></script>
   </body>
 </html>

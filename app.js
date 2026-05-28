@@ -1,7 +1,10 @@
 const CONFIG = {
-  minCharacters: 3,
-  maxCharacters: 12,
-  defaultCharacters: 8,
+  defaultDifficulty: "normal",
+  difficulties: {
+    easy: { label: "Easy", count: 3 },
+    normal: { label: "Normal", count: 5 },
+    hard: { label: "Hard", count: 7 },
+  },
   shuffleRounds: 5,
   characterImages: {
     idle: "assets/sprite-idle.png",
@@ -26,8 +29,7 @@ const audio = {
 };
 
 const dom = {
-  characterCount: document.getElementById("characterCount"),
-  presetButtons: [...document.querySelectorAll("[data-count]")],
+  difficultyButtons: [...document.querySelectorAll("[data-difficulty]")],
   startButton: document.getElementById("startButton"),
   revealButton: document.getElementById("revealButton"),
   resetButton: document.getElementById("resetButton"),
@@ -43,6 +45,7 @@ const dom = {
 };
 
 const state = {
+  difficulty: CONFIG.defaultDifficulty,
   characters: [],
   order: [],
   ricecakeId: -1,
@@ -57,24 +60,18 @@ init();
 
 function init() {
   bindEvents();
+  setDifficulty(state.difficulty);
   setupCharacters(readCharacterCount());
   render();
 }
 
 function bindEvents() {
-  dom.characterCount.addEventListener("input", () => {
-    if (state.running || state.phase === "ready") {
-      return;
-    }
-    resetToPreview(readCharacterCount());
-  });
-
-  dom.presetButtons.forEach((button) => {
+  dom.difficultyButtons.forEach((button) => {
     button.addEventListener("click", () => {
       if (state.running || state.phase === "ready") {
         return;
       }
-      dom.characterCount.value = button.dataset.count;
+      setDifficulty(button.dataset.difficulty);
       resetToPreview(readCharacterCount());
     });
   });
@@ -90,11 +87,23 @@ function bindEvents() {
 }
 
 function readCharacterCount() {
-  const rawValue = Number.parseInt(dom.characterCount.value, 10);
-  const fallback = Number.isFinite(rawValue) ? rawValue : CONFIG.defaultCharacters;
-  const count = clamp(fallback, CONFIG.minCharacters, CONFIG.maxCharacters);
-  dom.characterCount.value = count;
-  return count;
+  return characterCountForDifficulty(state.difficulty);
+}
+
+function setDifficulty(difficulty) {
+  if (!CONFIG.difficulties[difficulty]) {
+    return;
+  }
+
+  state.difficulty = difficulty;
+  dom.difficultyButtons.forEach((button) => {
+    const selected = button.dataset.difficulty === difficulty;
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
+function characterCountForDifficulty(difficulty) {
+  return CONFIG.difficulties[difficulty]?.count ?? CONFIG.difficulties[CONFIG.defaultDifficulty].count;
 }
 
 function resetToPreview(count) {
@@ -415,8 +424,7 @@ function render() {
   dom.revealButton.hidden = state.phase !== "ready";
   dom.revealButton.disabled = state.phase !== "ready";
   dom.startButton.disabled = state.running || state.phase === "ready";
-  dom.characterCount.disabled = state.running || state.phase === "ready";
-  dom.presetButtons.forEach((button) => {
+  dom.difficultyButtons.forEach((button) => {
     button.disabled = state.running || state.phase === "ready";
   });
 
@@ -462,7 +470,7 @@ function render() {
   if (state.phase === "idle") {
     dom.winnerPanel.hidden = true;
     setControlsLocked(false);
-    setMessage("캐릭터 수를 정하고 게임을 시작하세요.");
+    setMessage("난이도를 정하고 게임을 시작하세요.");
   }
 }
 
@@ -483,9 +491,8 @@ function imageForCharacter(characterId, motion) {
 }
 
 function setControlsLocked(locked) {
-  dom.characterCount.disabled = locked;
   dom.startButton.disabled = locked;
-  dom.presetButtons.forEach((button) => {
+  dom.difficultyButtons.forEach((button) => {
     button.disabled = locked;
   });
 }
