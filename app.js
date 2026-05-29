@@ -36,6 +36,7 @@ const dom = {
   difficultyButtons: [...document.querySelectorAll("[data-difficulty]")],
   startButton: document.getElementById("startButton"),
   revealButton: document.getElementById("revealButton"),
+  playAgainButton: document.getElementById("playAgainButton"),
   resetButton: document.getElementById("resetButton"),
   guessPanel: document.getElementById("guessPanel"),
   positionGuess: document.getElementById("positionGuess"),
@@ -77,7 +78,7 @@ function init() {
 function bindEvents() {
   dom.difficultyButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      if (state.running || state.phase === "ready") {
+      if (state.phase !== "idle") {
         return;
       }
       setDifficulty(button.dataset.difficulty);
@@ -87,6 +88,7 @@ function bindEvents() {
 
   dom.startButton.addEventListener("click", startGame);
   dom.revealButton.addEventListener("click", revealResult);
+  dom.playAgainButton.addEventListener("click", resetGame);
   dom.resetButton.addEventListener("click", resetGame);
   dom.positionGuess.addEventListener("input", () => {
     state.targetPositionInput = dom.positionGuess.value.replace(/\D/g, "").slice(0, 2);
@@ -248,7 +250,7 @@ async function startGame() {
   state.motionById = {};
   state.travelById = {};
   render();
-  setMessage("섞기가 끝났습니다. 결과 확인 버튼을 눌러 정답 위치를 공개하세요.");
+  setMessage("섞기가 끝났습니다. 결과 공개 버튼을 눌러 정답 위치를 공개하세요.");
 }
 
 function makeShuffleOrder(currentOrder, round, move) {
@@ -529,7 +531,7 @@ function render() {
   const slots = layout.slots;
   const positionById = new Map(state.order.map((characterId, slotIndex) => [characterId, slots[slotIndex]]));
   const isFinalReveal = state.phase === "revealed";
-  const isPanelCollapsed = state.phase === "eating" || state.phase === "shuffling";
+  const isPanelCollapsed = state.phase !== "idle";
 
   document.body.dataset.phase = state.phase;
   document.body.classList.toggle("panel-collapsed", isPanelCollapsed);
@@ -538,15 +540,17 @@ function render() {
   dom.stageTitle.textContent = title;
   dom.stageTitle.hidden = !title;
   dom.stageBadge.textContent = stageBadge();
-  dom.startButton.hidden = state.phase === "ready";
+  dom.startButton.hidden = state.phase !== "idle";
   dom.revealButton.hidden = state.phase !== "ready";
+  dom.playAgainButton.hidden = state.phase !== "revealed";
   dom.guessPanel.hidden = state.phase !== "idle";
   dom.positionGuess.disabled = state.phase !== "idle";
   dom.positionGuess.placeholder = `1~${count}`;
   dom.revealButton.disabled = state.phase !== "ready";
+  dom.playAgainButton.disabled = state.phase !== "revealed";
   dom.startButton.disabled = state.running || state.phase !== "idle" || !isValidTargetPosition();
   dom.difficultyButtons.forEach((button) => {
-    button.disabled = state.running || state.phase === "ready";
+    button.disabled = state.phase !== "idle";
   });
 
   dom.board.dataset.phase = state.phase;
@@ -666,7 +670,7 @@ function setControlsLocked(locked) {
 function stageTitle() {
   if (state.phase === "eating") return "몰래 떡 먹는 중";
   if (state.phase === "shuffling") return "";
-  if (state.phase === "ready") return "결과 확인 대기";
+  if (state.phase === "ready") return "결과 공개 대기";
   if (state.phase === "revealed") return "최종 위치 공개";
   return "대기 중";
 }

@@ -220,6 +220,12 @@ body.panel-collapsed .control-panel {
   animation: resultPulse 980ms ease-in-out infinite;
 }
 
+.replay-button {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #09080a;
+}
+
 .stats {
   display: grid;
   grid-template-columns: 1fr;
@@ -304,6 +310,32 @@ body.panel-collapsed .stage-top {
   padding: 8px 12px;
   color: var(--secondary);
   font-weight: 1000;
+}
+
+.stage-action-bar {
+  position: absolute;
+  top: clamp(78px, 9vw, 104px);
+  left: 50%;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.stage-action-button {
+  min-width: 164px;
+  min-height: 48px;
+  padding: 0 24px;
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.38);
+  pointer-events: auto;
+  animation:
+    topActionFadeIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    resultPulse 980ms ease-in-out infinite 420ms;
+}
+
+.stage-action-button.replay-button {
+  animation: topActionFadeIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .arena {
@@ -716,6 +748,17 @@ body.panel-collapsed .stage-top {
   }
 }
 
+@keyframes topActionFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 980px) {
   body {
     overflow: hidden;
@@ -755,6 +798,10 @@ body.panel-collapsed .stage-top {
 
   .stage-top {
     flex-direction: column;
+  }
+
+  .stage-action-bar {
+    top: 96px;
   }
 
   .arena {

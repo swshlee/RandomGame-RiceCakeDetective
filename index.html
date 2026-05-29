@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>떡먹은 긍정이 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=answer-motion15" />
+    <link rel="stylesheet" href="styles.css?v=answer-motion16" />
   </head>
   <body>
     <main class="app-shell">
@@ -54,7 +54,6 @@
 
         <div class="actions">
           <button id="startButton" class="primary-button" type="button">게임시작</button>
-          <button id="revealButton" class="primary-button reveal-button" type="button" hidden>결과확인</button>
           <button id="resetButton" class="ghost-button" type="button">초기화</button>
         </div>
 
@@ -68,6 +67,15 @@
             <h2 id="stageTitle">대기 중</h2>
           </div>
           <span id="stageBadge">READY</span>
+        </div>
+
+        <div class="stage-action-bar" aria-live="polite">
+          <button id="revealButton" class="primary-button reveal-button stage-action-button" type="button" hidden>
+            결과 공개
+          </button>
+          <button id="playAgainButton" class="primary-button replay-button stage-action-button" type="button" hidden>
+            다시하기
+          </button>
         </div>
 
         <div id="arena" class="arena" aria-live="polite">
@@ -84,6 +92,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=answer-motion15"></script>
+    <script src="app.js?v=answer-motion16"></script>
   </body>
 </html>
