@@ -11,6 +11,7 @@ const CONFIG = {
     normal: { label: "보통", movePrepMs: 560, shuffleMoveMs: 680, shuffleSettleMs: 150 },
     fast: { label: "빠르게", movePrepMs: 460, shuffleMoveMs: 540, shuffleSettleMs: 120 },
   },
+  backgroundThemes: ["office", "tennis", "coast", "current", "city"],
   shuffleRounds: 3,
   shuffleMovesPerRound: 4,
   characterImages: {
@@ -47,6 +48,7 @@ const dom = {
   message: document.getElementById("message"),
   stageTitle: document.getElementById("stageTitle"),
   stageBadge: document.getElementById("stageBadge"),
+  arena: document.getElementById("arena"),
   board: document.getElementById("board"),
   effectLayer: document.getElementById("effectLayer"),
   winnerPanel: document.getElementById("winnerPanel"),
@@ -67,6 +69,7 @@ const state = {
   travelById: {},
   targetPositionInput: "",
   targetPosition: 0,
+  backgroundTheme: "current",
 };
 
 init();
@@ -171,6 +174,7 @@ function resetToPreview(count) {
   state.travelById = {};
   state.targetPositionInput = "";
   state.targetPosition = 0;
+  state.backgroundTheme = "current";
   dom.positionGuess.value = "";
   setupCharacters(count);
   dom.winnerPanel.hidden = true;
@@ -209,6 +213,7 @@ async function startGame() {
   state.shuffleStep = 0;
   state.targetPosition = targetPosition;
   state.targetPositionInput = "";
+  state.backgroundTheme = randomBackgroundTheme();
   dom.positionGuess.value = "";
   state.ricecakeId = randomInt(0, state.characters.length - 1);
   state.motionById = { [state.ricecakeId]: "eat" };
@@ -589,6 +594,7 @@ function render() {
   });
 
   dom.board.dataset.phase = state.phase;
+  dom.arena.dataset.background = state.backgroundTheme;
   dom.board.style.setProperty("--character-count", count);
   dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
   dom.board.style.setProperty("--move-card-width", `${layout.moveCardWidth}px`);
@@ -692,6 +698,11 @@ function readTargetPosition() {
 
 function isValidTargetPosition() {
   return Boolean(readTargetPosition());
+}
+
+function randomBackgroundTheme() {
+  const themes = CONFIG.backgroundThemes;
+  return themes[randomInt(0, themes.length - 1)];
 }
 
 function setControlsLocked(locked) {

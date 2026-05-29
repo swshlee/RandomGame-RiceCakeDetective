@@ -322,39 +322,109 @@ body.panel-collapsed .stage-top {
 }
 
 .arena {
+  --scene-bg:
+    radial-gradient(ellipse at 50% 18%, rgba(255, 234, 177, 0.45), transparent 34%),
+    radial-gradient(ellipse at 50% 92%, rgba(255, 112, 102, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(11, 10, 14, 0.55), rgba(4, 4, 7, 0.88));
+  --scene-detail: transparent;
+  --scene-frame: rgba(242, 215, 139, 0.36);
+  --floor-bg:
+    radial-gradient(ellipse at center, rgba(118, 32, 27, 0.78), rgba(68, 22, 20, 0.46) 52%, transparent 72%),
+    linear-gradient(90deg, transparent, rgba(242, 215, 139, 0.26), transparent);
+  --floor-opacity: 0.95;
   position: relative;
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background:
-    radial-gradient(ellipse at 50% 18%, rgba(255, 234, 177, 0.45), transparent 34%),
-    radial-gradient(ellipse at 50% 92%, rgba(255, 112, 102, 0.18), transparent 42%),
-    linear-gradient(180deg, rgba(11, 10, 14, 0.55), rgba(4, 4, 7, 0.88));
+  background: var(--scene-bg);
+  transition: background 520ms ease;
+}
+
+.arena[data-background="office"] {
+  --scene-bg:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 18%),
+    linear-gradient(180deg, transparent 0 56%, rgba(22, 26, 33, 0.72) 56% 100%),
+    radial-gradient(ellipse at 50% 18%, rgba(255, 239, 190, 0.3), transparent 32%),
+    linear-gradient(180deg, #3b4655 0%, #242d39 56%, #171a22 100%);
+  --scene-detail:
+    linear-gradient(90deg, transparent 0 7%, rgba(144, 202, 249, 0.26) 7% 15%, transparent 15% 22%),
+    linear-gradient(90deg, transparent 0 72%, rgba(255, 230, 156, 0.18) 72% 84%, transparent 84% 100%),
+    linear-gradient(0deg, transparent 0 62%, rgba(255, 255, 255, 0.08) 62% 63%, transparent 63% 100%);
+  --scene-frame: rgba(219, 229, 244, 0.26);
+  --floor-bg:
+    radial-gradient(ellipse at center, rgba(46, 56, 72, 0.76), rgba(26, 31, 40, 0.5) 56%, transparent 74%),
+    linear-gradient(90deg, transparent, rgba(255, 230, 156, 0.18), transparent);
+}
+
+.arena[data-background="tennis"] {
+  --scene-bg:
+    linear-gradient(90deg, transparent 0 18%, rgba(255, 255, 255, 0.62) 18% 18.4%, transparent 18.4% 81.6%, rgba(255, 255, 255, 0.62) 81.6% 82%, transparent 82%),
+    linear-gradient(0deg, transparent 0 31%, rgba(255, 255, 255, 0.56) 31% 31.5%, transparent 31.5% 70%, rgba(255, 255, 255, 0.56) 70% 70.5%, transparent 70.5%),
+    linear-gradient(90deg, transparent 0 49.8%, rgba(255, 255, 255, 0.52) 49.8% 50.2%, transparent 50.2%),
+    radial-gradient(ellipse at 50% 14%, rgba(178, 255, 196, 0.32), transparent 32%),
+    linear-gradient(180deg, #267a4a 0%, #155d3b 56%, #0f3b29 100%);
+  --scene-detail:
+    linear-gradient(0deg, transparent 0 48%, rgba(14, 24, 20, 0.34) 48% 49%, rgba(236, 255, 241, 0.34) 49% 49.5%, transparent 49.5% 100%);
+  --scene-frame: rgba(225, 255, 232, 0.42);
+  --floor-bg:
+    radial-gradient(ellipse at center, rgba(39, 119, 70, 0.8), rgba(23, 78, 50, 0.52) 56%, transparent 74%),
+    linear-gradient(90deg, transparent, rgba(244, 255, 202, 0.2), transparent);
+}
+
+.arena[data-background="coast"] {
+  --scene-bg:
+    radial-gradient(circle at 78% 18%, rgba(255, 239, 164, 0.86) 0 5%, rgba(255, 239, 164, 0.26) 5.5% 12%, transparent 12.5%),
+    linear-gradient(180deg, rgba(126, 205, 255, 0.98) 0%, rgba(107, 194, 245, 0.88) 34%, rgba(24, 126, 168, 0.82) 34% 55%, rgba(230, 196, 128, 0.9) 55% 100%),
+    radial-gradient(ellipse at 50% 88%, rgba(255, 230, 168, 0.42), transparent 44%);
+  --scene-detail:
+    linear-gradient(0deg, transparent 0 45%, rgba(255, 255, 255, 0.35) 45% 45.5%, transparent 45.5% 100%),
+    repeating-linear-gradient(-8deg, transparent 0 38px, rgba(255, 255, 255, 0.14) 38px 41px, transparent 41px 78px);
+  --scene-frame: rgba(255, 235, 183, 0.48);
+  --floor-bg:
+    radial-gradient(ellipse at center, rgba(214, 151, 80, 0.7), rgba(162, 98, 58, 0.42) 56%, transparent 74%),
+    linear-gradient(90deg, transparent, rgba(255, 244, 198, 0.28), transparent);
+}
+
+.arena[data-background="city"] {
+  --scene-bg:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.2) 0%, rgba(7, 10, 20, 0.72) 58%, rgba(4, 5, 10, 0.95) 100%),
+    repeating-linear-gradient(90deg, rgba(21, 28, 48, 0.88) 0 42px, rgba(8, 11, 22, 0.96) 42px 64px, rgba(31, 39, 64, 0.8) 64px 106px),
+    radial-gradient(circle at 20% 16%, rgba(255, 240, 169, 0.24), transparent 18%),
+    linear-gradient(180deg, #101a36 0%, #070912 100%);
+  --scene-detail:
+    repeating-linear-gradient(90deg, transparent 0 24px, rgba(255, 220, 116, 0.28) 24px 27px, transparent 27px 48px),
+    repeating-linear-gradient(0deg, transparent 0 28px, rgba(255, 255, 255, 0.08) 28px 30px, transparent 30px 56px);
+  --scene-frame: rgba(137, 181, 255, 0.3);
+  --floor-bg:
+    radial-gradient(ellipse at center, rgba(22, 30, 48, 0.82), rgba(7, 10, 18, 0.54) 56%, transparent 74%),
+    linear-gradient(90deg, transparent, rgba(107, 153, 255, 0.18), transparent);
 }
 
 .arena::before {
   content: "";
   position: absolute;
   inset: 20px;
-  border: 1px dashed rgba(242, 215, 139, 0.36);
+  z-index: 1;
+  border: 1px dashed var(--scene-frame);
   border-radius: 8px;
+  background: var(--scene-detail);
   opacity: 0.58;
+  pointer-events: none;
 }
 
 .table-line {
   position: absolute;
   left: 50%;
   bottom: 13%;
+  z-index: 1;
   width: min(980px, 92%);
   height: 18%;
   transform: translateX(-50%) perspective(500px) rotateX(58deg);
   border-radius: 50%;
-  background:
-    radial-gradient(ellipse at center, rgba(118, 32, 27, 0.78), rgba(68, 22, 20, 0.46) 52%, transparent 72%),
-    linear-gradient(90deg, transparent, rgba(242, 215, 139, 0.26), transparent);
+  background: var(--floor-bg);
   filter: blur(0.2px);
-  opacity: 0.95;
+  opacity: var(--floor-opacity);
 }
 
 .board {
