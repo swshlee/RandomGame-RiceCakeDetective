@@ -202,7 +202,7 @@ async function startGame() {
       const nextOrder = isFinalMove
         ? makeTargetOrder(previousOrder, state.ricecakeId, state.targetPosition - 1)
         : makeShuffleOrder(previousOrder, round, move);
-      state.motionById = getMotionMap(previousOrder, nextOrder, round, move);
+      state.motionById = getMotionMap(previousOrder, nextOrder);
       state.travelById = getTravelMap(previousOrder, nextOrder);
       state.order = nextOrder;
       render();
@@ -275,13 +275,12 @@ function makeTargetOrder(currentOrder, targetCharacterId, targetIndex) {
   return nextOrder;
 }
 
-function getMotionMap(previousOrder, nextOrder, round, move) {
+function getMotionMap(previousOrder, nextOrder) {
   return nextOrder.reduce((motions, characterId, nextIndex) => {
     const previousIndex = previousOrder.indexOf(characterId);
     if (previousIndex !== nextIndex) {
       const direction = nextIndex > previousIndex ? "right" : "left";
-      const style = (round + move + nextIndex) % 2 === 0 ? "jump" : "roll";
-      motions[characterId] = `${style}-${direction}`;
+      motions[characterId] = `jump-${direction}`;
     }
     return motions;
   }, {});
@@ -570,7 +569,7 @@ function imageForCharacter(characterId, motion) {
   if (motion === "jump" || motion.startsWith("jump")) {
     return CONFIG.characterImages.jump;
   }
-  if (motion === "slide" || motion.startsWith("roll")) {
+  if (motion === "slide") {
     return CONFIG.characterImages.slide;
   }
   return CONFIG.characterImages.idle;

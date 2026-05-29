@@ -382,47 +382,28 @@ input:disabled {
 
 .character-card.motion-jump-left,
 .character-card.motion-jump-right,
-.character-card.motion-roll-left,
-.character-card.motion-roll-right,
 .character-card.motion-slide {
   z-index: 60;
   width: min(310px, calc(var(--card-width) + var(--card-width) + 16px));
   animation: cardDashTravel var(--shuffle-move-duration) linear both;
 }
 
-.character-card.motion-jump-left,
-.character-card.motion-roll-left {
-  --move-lean: -7deg;
-  --move-counter-lean: 4deg;
-  --roll-a: -94deg;
-  --roll-b: -209deg;
-  --roll-c: -302deg;
+.character-card.motion-jump-left {
+  --move-lean: -3deg;
+  --move-counter-lean: 2deg;
 }
 
 .character-card.motion-jump-right,
-.character-card.motion-roll-right,
 .character-card.motion-slide {
-  --move-lean: 7deg;
-  --move-counter-lean: -4deg;
-  --roll-a: 94deg;
-  --roll-b: 209deg;
-  --roll-c: 302deg;
+  --move-lean: 3deg;
+  --move-counter-lean: -2deg;
 }
 
 .character-card.motion-jump-left .character-inner,
-.character-card.motion-jump-right .character-inner {
+.character-card.motion-jump-right .character-inner,
+.character-card.motion-slide .character-inner {
   aspect-ratio: 1.03;
   animation: jumpTravelMotion var(--shuffle-move-duration) ease-in-out;
-  filter:
-    drop-shadow(0 0 12px rgba(91, 214, 255, 0.34))
-    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
-}
-
-.character-card.motion-roll-left .character-inner,
-.character-card.motion-roll-right .character-inner,
-.character-card.motion-slide .character-inner {
-  aspect-ratio: 1.02;
-  animation: rollTravelMotion var(--shuffle-move-duration) ease-in-out;
   filter:
     drop-shadow(0 0 12px rgba(91, 214, 255, 0.34))
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
@@ -549,22 +530,6 @@ input:disabled {
   }
   75% {
     transform: translateY(-36px) rotate(var(--move-counter-lean));
-  }
-}
-
-@keyframes rollTravelMotion {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  24% {
-    transform: translateY(22px) rotate(var(--roll-a));
-  }
-  52% {
-    transform: translateY(34px) rotate(var(--roll-b));
-  }
-  78% {
-    transform: translateY(18px) rotate(var(--roll-c));
   }
 }
 
