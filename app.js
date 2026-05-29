@@ -539,6 +539,9 @@ function render() {
   dom.board.dataset.phase = state.phase;
   dom.board.style.setProperty("--character-count", count);
   dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
+  dom.board.style.setProperty("--move-card-width", `${layout.moveCardWidth}px`);
+  dom.board.style.setProperty("--character-height", `${layout.characterHeight}px`);
+  dom.board.style.setProperty("--move-prep-duration", `${CONFIG.movePrepMs}ms`);
   dom.board.style.setProperty("--shuffle-move-duration", `${CONFIG.shuffleMoveMs}ms`);
   dom.board.innerHTML = state.characters
     .map((character) => {
@@ -588,9 +591,6 @@ function imageForCharacter(characterId, motion) {
     return CONFIG.characterImages.eat;
   }
   if (motion === "jump" || motion.startsWith("jump")) {
-    return CONFIG.characterImages.jump;
-  }
-  if (motion.startsWith("pose")) {
     return CONFIG.characterImages.jump;
   }
   if (motion === "slide") {
@@ -651,13 +651,15 @@ function computeLayout(count) {
   const boardHeight = dom.board.clientHeight || 560;
   const usableWidth = Math.max(320, boardWidth - 36);
   const cardWidth = Math.floor(clamp((usableWidth / count) * 1.05, 66, 150));
+  const moveCardWidth = Math.min(310, cardWidth * 2 + 16);
+  const characterHeight = Math.round(cardWidth / 0.46);
   const y = boardHeight < 420 ? 62 : 64;
   const slots = Array.from({ length: count }, (_, slotIndex) => ({
     x: round(((slotIndex + 1) / (count + 1)) * 100),
     y,
     z: 10 + slotIndex,
   }));
-  return { slots, cardWidth };
+  return { slots, cardWidth, moveCardWidth, characterHeight };
 }
 
 function popBursts(count, type) {

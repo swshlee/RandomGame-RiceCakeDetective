@@ -311,7 +311,10 @@ input:disabled {
 
 .board {
   --character-count: 8;
+  --move-prep-duration: 500ms;
   --shuffle-move-duration: 820ms;
+  --move-card-width: 150px;
+  --character-height: 326px;
   position: absolute;
   inset: 18px 10px 24px;
   z-index: 2;
@@ -320,12 +323,14 @@ input:disabled {
 .character-card {
   --travel-x: 0px;
   --image-direction: 1;
+  --prep-lean: -4deg;
+  --prep-shift: -8px;
   --jump-lift: -58px;
   --jump-peak: -84px;
   --jump-land: -36px;
   position: absolute;
   z-index: var(--z);
-  width: var(--card-width);
+  width: var(--move-card-width);
   transform: translate(-50%, -50%) scale(1);
   transition:
     left var(--shuffle-move-duration) linear,
@@ -338,8 +343,9 @@ input:disabled {
 
 .character-inner {
   position: relative;
-  width: 100%;
-  aspect-ratio: 0.46;
+  width: var(--card-width);
+  height: var(--character-height);
+  margin: 0 auto;
   overflow: visible;
   filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.48));
   transform-origin: 50% 88%;
@@ -391,7 +397,6 @@ input:disabled {
 .character-card.motion-pose-right,
 .character-card.motion-slide {
   z-index: 60;
-  width: min(310px, calc(var(--card-width) + var(--card-width) + 16px));
 }
 
 .character-card.motion-jump-left,
@@ -402,27 +407,41 @@ input:disabled {
 
 .character-card.motion-jump-left,
 .character-card.motion-pose-left {
+  --prep-lean: -5deg;
+  --prep-shift: -10px;
   --move-lean: -3deg;
   --move-counter-lean: 2deg;
 }
 
 .character-card.motion-jump-right,
-.character-card.motion-pose-right,
 .character-card.motion-slide {
   --image-direction: -1;
   --move-lean: 3deg;
   --move-counter-lean: -2deg;
 }
 
+.character-card.motion-pose-right {
+  --prep-lean: 5deg;
+  --prep-shift: 10px;
+  --move-lean: 3deg;
+  --move-counter-lean: -2deg;
+}
+
 .character-card.motion-jump-left .character-inner,
 .character-card.motion-jump-right .character-inner,
-.character-card.motion-pose-left .character-inner,
-.character-card.motion-pose-right .character-inner,
 .character-card.motion-slide .character-inner {
-  aspect-ratio: 1.03;
+  width: var(--move-card-width);
   filter:
     drop-shadow(0 0 12px rgba(91, 214, 255, 0.34))
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.5));
+}
+
+.character-card.motion-pose-left .character-inner,
+.character-card.motion-pose-right .character-inner {
+  animation: readyToMove var(--move-prep-duration) ease-in-out both;
+  filter:
+    drop-shadow(0 0 10px rgba(91, 214, 255, 0.24))
+    drop-shadow(0 16px 16px rgba(0, 0, 0, 0.48));
 }
 
 .character-card.motion-jump-left .character-inner,
@@ -536,6 +555,18 @@ input:disabled {
   }
   100% {
     transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes readyToMove {
+  0% {
+    transform: translateX(0) translateY(0) rotate(0deg);
+  }
+  42% {
+    transform: translateX(var(--prep-shift)) translateY(8px) rotate(var(--prep-lean));
+  }
+  100% {
+    transform: translateX(0) translateY(0) rotate(0deg);
   }
 }
 
