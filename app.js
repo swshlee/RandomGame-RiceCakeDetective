@@ -5,7 +5,7 @@ const CONFIG = {
     normal: { label: "Normal", count: 5 },
     hard: { label: "Hard", count: 7 },
   },
-  shuffleRounds: 5,
+  shuffleRounds: 3,
   shuffleMovesPerRound: 4,
   movePrepMs: 660,
   shuffleMoveMs: 820,
@@ -531,8 +531,11 @@ function render() {
   const isFinalReveal = state.phase === "revealed";
 
   dom.characterTotal.textContent = formatNumber(count);
-  dom.stageTitle.textContent = stageTitle();
+  const title = stageTitle();
+  dom.stageTitle.textContent = title;
+  dom.stageTitle.hidden = !title;
   dom.stageBadge.textContent = stageBadge();
+  dom.startButton.hidden = state.phase === "ready";
   dom.revealButton.hidden = state.phase !== "ready";
   dom.guessPanel.hidden = state.phase !== "idle";
   dom.positionGuess.disabled = state.phase !== "idle";
@@ -648,7 +651,7 @@ function setControlsLocked(locked) {
 
 function stageTitle() {
   if (state.phase === "eating") return "몰래 떡 먹는 중";
-  if (state.phase === "shuffling") return `${state.shuffleStep}번째 야바위`;
+  if (state.phase === "shuffling") return "";
   if (state.phase === "ready") return "결과 확인 대기";
   if (state.phase === "revealed") return "최종 위치 공개";
   return "대기 중";
