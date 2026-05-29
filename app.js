@@ -1,15 +1,18 @@
 const CONFIG = {
   defaultDifficulty: "normal",
+  defaultSpeed: "slow",
   difficulties: {
     easy: { label: "Easy", count: 3 },
     normal: { label: "Normal", count: 5 },
     hard: { label: "Hard", count: 7 },
   },
+  speeds: {
+    slow: { label: "느리게", movePrepMs: 660, shuffleMoveMs: 820, shuffleSettleMs: 180 },
+    normal: { label: "보통", movePrepMs: 560, shuffleMoveMs: 680, shuffleSettleMs: 150 },
+    fast: { label: "빠르게", movePrepMs: 460, shuffleMoveMs: 540, shuffleSettleMs: 120 },
+  },
   shuffleRounds: 3,
   shuffleMovesPerRound: 4,
-  movePrepMs: 660,
-  shuffleMoveMs: 820,
-  shuffleSettleMs: 180,
   characterImages: {
     idle: "assets/sprite-idle.png",
     eat: "assets/sprite-eat.png",
@@ -34,13 +37,13 @@ const audio = {
 
 const dom = {
   difficultyButtons: [...document.querySelectorAll("[data-difficulty]")],
+  speedButtons: [...document.querySelectorAll("[data-speed]")],
   startButton: document.getElementById("startButton"),
   revealButton: document.getElementById("revealButton"),
   playAgainButton: document.getElementById("playAgainButton"),
   resetButton: document.getElementById("resetButton"),
   guessPanel: document.getElementById("guessPanel"),
   positionGuess: document.getElementById("positionGuess"),
-  characterTotal: document.getElementById("characterTotal"),
   message: document.getElementById("message"),
   stageTitle: document.getElementById("stageTitle"),
   stageBadge: document.getElementById("stageBadge"),
@@ -52,6 +55,7 @@ const dom = {
 
 const state = {
   difficulty: CONFIG.defaultDifficulty,
+  speed: CONFIG.defaultSpeed,
   characters: [],
   order: [],
   ricecakeId: -1,
@@ -71,6 +75,7 @@ function init() {
   bindEvents();
   preloadImages();
   setDifficulty(state.difficulty);
+  setSpeed(state.speed);
   setupCharacters(readCharacterCount());
   render();
 }
@@ -83,6 +88,16 @@ function bindEvents() {
       }
       setDifficulty(button.dataset.difficulty);
       resetToPreview(readCharacterCount());
+    });
+  });
+
+  dom.speedButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (state.phase !== "idle") {
+        return;
+      }
+      setSpeed(button.dataset.speed);
+      render();
     });
   });
 
@@ -129,6 +144,22 @@ function characterCountForDifficulty(difficulty) {
   return CONFIG.difficulties[difficulty]?.count ?? CONFIG.difficulties[CONFIG.defaultDifficulty].count;
 }
 
+function setSpeed(speed) {
+  if (!CONFIG.speeds[speed]) {
+    return;
+  }
+
+  state.speed = speed;
+  dom.speedButtons.forEach((button) => {
+    const selected = button.dataset.speed === speed;
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
+function speedConfig() {
+  return CONFIG.speeds[state.speed] ?? CONFIG.speeds[CONFIG.defaultSpeed];
+}
+
 function resetToPreview(count) {
   stopShuffleSound();
   state.token += 1;
@@ -169,6 +200,7 @@ async function startGame() {
 
   await ensureAudio();
   const count = readCharacterCount();
+  const speed = speedConfig();
   setupCharacters(count);
   state.token += 1;
   const token = state.token;
@@ -218,7 +250,7 @@ async function startGame() {
       state.motionById = getPoseMap(nextMotionById);
       state.travelById = {};
       render();
-      await wait(CONFIG.movePrepMs);
+      await wait(speed.movePrepMs);
 
       if (token !== state.token) {
         stopShuffleSound();
@@ -230,13 +262,13 @@ async function startGame() {
       state.order = nextOrder;
       render();
       popBursts(4 + round, "spark");
-      await wait(CONFIG.shuffleMoveMs);
+      await wait(speed.shuffleMoveMs);
     }
 
     state.motionById = {};
     state.travelById = {};
     render();
-    await wait(CONFIG.shuffleSettleMs);
+    await wait(speed.shuffleSettleMs);
   }
 
   if (token !== state.token) {
@@ -527,6 +559,7 @@ function playNoise(time, duration, gainValue) {
 
 function render() {
   const count = state.characters.length;
+  const speed = speedConfig();
   const layout = computeLayout(count);
   const slots = layout.slots;
   const positionById = new Map(state.order.map((characterId, slotIndex) => [characterId, slots[slotIndex]]));
@@ -535,7 +568,6 @@ function render() {
 
   document.body.dataset.phase = state.phase;
   document.body.classList.toggle("panel-collapsed", isPanelCollapsed);
-  dom.characterTotal.textContent = formatNumber(count);
   const title = stageTitle();
   dom.stageTitle.textContent = title;
   dom.stageTitle.hidden = !title;
@@ -552,14 +584,17 @@ function render() {
   dom.difficultyButtons.forEach((button) => {
     button.disabled = state.phase !== "idle";
   });
+  dom.speedButtons.forEach((button) => {
+    button.disabled = state.phase !== "idle";
+  });
 
   dom.board.dataset.phase = state.phase;
   dom.board.style.setProperty("--character-count", count);
   dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
   dom.board.style.setProperty("--move-card-width", `${layout.moveCardWidth}px`);
   dom.board.style.setProperty("--character-height", `${layout.characterHeight}px`);
-  dom.board.style.setProperty("--move-prep-duration", `${CONFIG.movePrepMs}ms`);
-  dom.board.style.setProperty("--shuffle-move-duration", `${CONFIG.shuffleMoveMs}ms`);
+  dom.board.style.setProperty("--move-prep-duration", `${speed.movePrepMs}ms`);
+  dom.board.style.setProperty("--shuffle-move-duration", `${speed.shuffleMoveMs}ms`);
   dom.board.innerHTML = state.characters
     .map((character) => {
       const slot = positionById.get(character.id);
@@ -663,6 +698,9 @@ function setControlsLocked(locked) {
   dom.startButton.disabled = locked;
   dom.positionGuess.disabled = locked;
   dom.difficultyButtons.forEach((button) => {
+    button.disabled = locked;
+  });
+  dom.speedButtons.forEach((button) => {
     button.disabled = locked;
   });
 }

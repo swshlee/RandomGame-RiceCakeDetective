@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>떡먹은 긍정이 찾기</title>
-    <link rel="stylesheet" href="styles.css?v=answer-motion16" />
+    <link rel="stylesheet" href="styles.css?v=answer-motion17" />
   </head>
   <body>
     <main class="app-shell">
@@ -32,10 +32,18 @@
           </div>
         </div>
 
-        <div class="stats">
-          <div>
-            <span>캐릭터</span>
-            <strong id="characterTotal">0</strong>
+        <div class="speed-field">
+          <span>속도</span>
+          <div class="speed-select" role="group" aria-label="이동 속도 선택">
+            <button type="button" data-speed="slow" aria-pressed="true">
+              <span>느리게</span>
+            </button>
+            <button type="button" data-speed="normal" aria-pressed="false">
+              <span>보통</span>
+            </button>
+            <button type="button" data-speed="fast" aria-pressed="false">
+              <span>빠르게</span>
+            </button>
           </div>
         </div>
 
@@ -92,6 +100,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=answer-motion16"></script>
+    <script src="app.js?v=answer-motion17"></script>
   </body>
 </html>
