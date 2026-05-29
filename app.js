@@ -7,6 +7,7 @@ const CONFIG = {
   },
   shuffleRounds: 5,
   shuffleMovesPerRound: 4,
+  movePrepMs: 500,
   shuffleMoveMs: 820,
   shuffleSettleMs: 180,
   characterImages: {
@@ -202,8 +203,20 @@ async function startGame() {
       const nextOrder = isFinalMove
         ? makeTargetOrder(previousOrder, state.ricecakeId, state.targetPosition - 1)
         : makeShuffleOrder(previousOrder, round, move);
-      state.motionById = getMotionMap(previousOrder, nextOrder);
-      state.travelById = getTravelMap(previousOrder, nextOrder);
+      const nextMotionById = getMotionMap(previousOrder, nextOrder);
+      const nextTravelById = getTravelMap(previousOrder, nextOrder);
+      state.motionById = getPoseMap(nextMotionById);
+      state.travelById = {};
+      render();
+      await wait(CONFIG.movePrepMs);
+
+      if (token !== state.token) {
+        stopShuffleSound();
+        return;
+      }
+
+      state.motionById = nextMotionById;
+      state.travelById = nextTravelById;
       state.order = nextOrder;
       render();
       popBursts(4 + round, "spark");
@@ -283,6 +296,13 @@ function getMotionMap(previousOrder, nextOrder) {
       motions[characterId] = `jump-${direction}`;
     }
     return motions;
+  }, {});
+}
+
+function getPoseMap(motionById) {
+  return Object.entries(motionById).reduce((poses, [characterId, motion]) => {
+    poses[characterId] = motion.endsWith("right") ? "pose-right" : "pose-left";
+    return poses;
   }, {});
 }
 
@@ -525,6 +545,7 @@ function render() {
       const slot = positionById.get(character.id);
       const motion = state.motionById[character.id] || "";
       const travelX = state.travelById[character.id] || 0;
+      const jumpStyle = jumpStyleForCharacter(character.id);
       const imageSource = imageForCharacter(character.id, motion);
       const classes = ["character-card"];
 
@@ -542,7 +563,7 @@ function render() {
       }
 
       return `
-        <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}; --travel-x:${travelX}px">
+        <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}; --travel-x:${travelX}px; --jump-lift:${jumpStyle.lift}; --jump-peak:${jumpStyle.peak}; --jump-land:${jumpStyle.land}">
           <div class="character-inner">
             <img class="character-image" src="${imageSource}" alt="" draggable="false" />
           </div>
@@ -569,10 +590,23 @@ function imageForCharacter(characterId, motion) {
   if (motion === "jump" || motion.startsWith("jump")) {
     return CONFIG.characterImages.jump;
   }
+  if (motion.startsWith("pose")) {
+    return CONFIG.characterImages.jump;
+  }
   if (motion === "slide") {
     return CONFIG.characterImages.slide;
   }
   return CONFIG.characterImages.idle;
+}
+
+function jumpStyleForCharacter(characterId) {
+  const lift = 48 + (characterId % 4) * 8;
+  const peak = lift + 24 + ((characterId * 7) % 14);
+  return {
+    lift: `-${lift}px`,
+    peak: `-${peak}px`,
+    land: `-${Math.round(lift * 0.56)}px`,
+  };
 }
 
 function syncStartControls() {
