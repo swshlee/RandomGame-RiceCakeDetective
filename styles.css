@@ -199,7 +199,7 @@ input:disabled {
 
 .stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -313,7 +313,7 @@ input:disabled {
   --character-count: 8;
   --move-prep-duration: 500ms;
   --shuffle-move-duration: 820ms;
-  --move-card-width: 150px;
+  --move-card-width: 120px;
   --character-height: 326px;
   position: absolute;
   inset: 18px 10px 24px;
@@ -330,7 +330,7 @@ input:disabled {
   --jump-land: -36px;
   position: absolute;
   z-index: var(--z);
-  width: var(--move-card-width);
+  width: var(--card-width);
   transform: translate(-50%, -50%) scale(1);
   transition:
     left var(--shuffle-move-duration) linear,

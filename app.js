@@ -39,7 +39,6 @@ const dom = {
   guessPanel: document.getElementById("guessPanel"),
   positionGuess: document.getElementById("positionGuess"),
   characterTotal: document.getElementById("characterTotal"),
-  shuffleCounter: document.getElementById("shuffleCounter"),
   message: document.getElementById("message"),
   stageTitle: document.getElementById("stageTitle"),
   stageBadge: document.getElementById("stageBadge"),
@@ -523,7 +522,6 @@ function render() {
   const isFinalReveal = state.phase === "revealed";
 
   dom.characterTotal.textContent = formatNumber(count);
-  dom.shuffleCounter.textContent = state.shuffleStep;
   dom.stageTitle.textContent = stageTitle();
   dom.stageBadge.textContent = stageBadge();
   dom.revealButton.hidden = state.phase !== "ready";
@@ -651,7 +649,7 @@ function computeLayout(count) {
   const boardHeight = dom.board.clientHeight || 560;
   const usableWidth = Math.max(320, boardWidth - 36);
   const cardWidth = Math.floor(clamp((usableWidth / count) * 1.05, 66, 150));
-  const moveCardWidth = Math.min(310, cardWidth * 2 + 16);
+  const moveCardWidth = Math.round(cardWidth * 0.8);
   const characterHeight = Math.round(cardWidth / 0.46);
   const y = boardHeight < 420 ? 62 : 64;
   const slots = Array.from({ length: count }, (_, slotIndex) => ({
