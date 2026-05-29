@@ -13,6 +13,7 @@ const CONFIG = {
   characterImages: {
     idle: "assets/sprite-idle.png",
     eat: "assets/sprite-eat.png",
+    readyJumpSheet: "assets/sprite-ready-jump-sheet.png",
     jump: "assets/sprite-jump.png",
     slide: "assets/sprite-slide.png",
   },
@@ -67,6 +68,7 @@ init();
 
 function init() {
   bindEvents();
+  preloadImages();
   setDifficulty(state.difficulty);
   setupCharacters(readCharacterCount());
   render();
@@ -95,6 +97,13 @@ function bindEvents() {
     if (!state.running) {
       render();
     }
+  });
+}
+
+function preloadImages() {
+  Object.values(CONFIG.characterImages).forEach((source) => {
+    const image = new Image();
+    image.src = source;
   });
 }
 
@@ -547,7 +556,7 @@ function render() {
       const motion = state.motionById[character.id] || "";
       const travelX = state.travelById[character.id] || 0;
       const jumpStyle = jumpStyleForCharacter(character.id);
-      const imageSource = imageForCharacter(character.id, motion);
+      const imageMarkup = imageMarkupForCharacter(character.id, motion);
       const classes = ["character-card"];
 
       if (motion) {
@@ -566,7 +575,7 @@ function render() {
       return `
         <article class="${classes.join(" ")}" style="left:${slot.x}%; top:${slot.y}%; --accent-color:${character.accent}; --z:${slot.z}; --travel-x:${travelX}px; --jump-lift:${jumpStyle.lift}; --jump-peak:${jumpStyle.peak}; --jump-land:${jumpStyle.land}">
           <div class="character-inner">
-            <img class="character-image" src="${imageSource}" alt="" draggable="false" />
+            ${imageMarkup}
           </div>
         </article>
       `;
@@ -579,6 +588,15 @@ function render() {
     syncStartControls();
     setMessage("난이도와 정답 위치를 정하고 게임을 시작하세요.");
   }
+}
+
+function imageMarkupForCharacter(characterId, motion) {
+  if (motion?.startsWith("pose")) {
+    return '<span class="character-image character-pose-sprite" aria-hidden="true"></span>';
+  }
+
+  const imageSource = imageForCharacter(characterId, motion);
+  return `<img class="character-image" src="${imageSource}" alt="" draggable="false" />`;
 }
 
 function imageForCharacter(characterId, motion) {
@@ -649,7 +667,7 @@ function computeLayout(count) {
   const boardHeight = dom.board.clientHeight || 560;
   const usableWidth = Math.max(320, boardWidth - 36);
   const cardWidth = Math.floor(clamp((usableWidth / count) * 1.05, 66, 150));
-  const moveCardWidth = Math.round(cardWidth * 0.8);
+  const moveCardWidth = Math.min(310, cardWidth * 2 + 16);
   const characterHeight = Math.round(cardWidth / 0.46);
   const y = boardHeight < 420 ? 62 : 64;
   const slots = Array.from({ length: count }, (_, slotIndex) => ({
