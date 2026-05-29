@@ -7,7 +7,7 @@ const CONFIG = {
   },
   shuffleRounds: 5,
   shuffleMovesPerRound: 4,
-  movePrepMs: 500,
+  movePrepMs: 660,
   shuffleMoveMs: 820,
   shuffleSettleMs: 180,
   characterImages: {
