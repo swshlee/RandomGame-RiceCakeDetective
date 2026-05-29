@@ -49,13 +49,13 @@ input:disabled {
 }
 
 .app-shell {
-  width: min(1440px, calc(100% - 28px));
+  position: relative;
+  width: 100%;
   height: 100dvh;
-  margin: 0 auto;
-  padding: 16px 0;
-  display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  gap: 16px;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .control-panel,
@@ -68,11 +68,33 @@ input:disabled {
 }
 
 .control-panel {
+  position: fixed;
+  top: clamp(14px, 2vw, 24px);
+  left: clamp(14px, 2vw, 24px);
+  z-index: 140;
+  width: min(340px, calc(100vw - 28px));
+  max-height: calc(100dvh - clamp(28px, 4vw, 48px));
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 18px;
-  overflow: hidden;
+  overflow-y: auto;
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms ease;
+  will-change: transform, opacity;
+}
+
+.control-panel > * {
+  min-width: 0;
+}
+
+body.panel-collapsed .control-panel {
+  transform: translateX(calc(-100% - 48px));
+  opacity: 0;
+  pointer-events: none;
 }
 
 .brand p,
@@ -112,6 +134,7 @@ input:disabled {
 }
 
 .difficulty-select button {
+  min-width: 0;
   min-height: 68px;
   display: grid;
   place-items: center;
@@ -240,12 +263,16 @@ input:disabled {
 }
 
 .stage-panel {
-  position: relative;
+  position: fixed;
+  inset: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
-  padding: 18px;
+  padding: clamp(14px, 2vw, 28px);
   overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   background:
     radial-gradient(circle at 50% 12%, rgba(242, 215, 139, 0.28), transparent 30%),
     linear-gradient(180deg, #221713 0%, #08070a 100%);
@@ -258,6 +285,12 @@ input:disabled {
   align-items: start;
   position: relative;
   z-index: 4;
+  padding-left: min(382px, 36vw);
+  transition: padding-left 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.panel-collapsed .stage-top {
+  padding-left: 0;
 }
 
 .stage-top h2 {
@@ -633,18 +666,20 @@ input:disabled {
 }
 
 @keyframes jumpTravelMotion {
-  0%,
-  100% {
+  0% {
     transform: translateY(0) rotate(0deg);
   }
-  25% {
+  18% {
     transform: translateY(var(--jump-lift)) rotate(var(--move-lean));
   }
-  50% {
+  48% {
     transform: translateY(var(--jump-peak)) rotate(0deg);
   }
-  75% {
+  74% {
     transform: translateY(var(--jump-land)) rotate(var(--move-counter-lean));
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
   }
 }
 
@@ -683,17 +718,21 @@ input:disabled {
 
 @media (max-width: 980px) {
   body {
-    overflow: auto;
+    overflow: hidden;
   }
 
   .app-shell {
-    height: auto;
+    width: 100%;
+    height: 100dvh;
     min-height: 100dvh;
-    grid-template-columns: 1fr;
   }
 
   .stage-panel {
-    min-height: 680px;
+    min-height: 0;
+  }
+
+  .stage-top {
+    padding-left: 0;
   }
 
   .character-card {
@@ -702,14 +741,16 @@ input:disabled {
 }
 
 @media (max-width: 560px) {
-  .app-shell {
-    width: min(100% - 18px, 1440px);
-    padding: 9px 0;
+  .control-panel {
+    top: 10px;
+    left: 10px;
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 14px;
   }
 
-  .control-panel,
   .stage-panel {
-    padding: 14px;
+    padding: 12px;
   }
 
   .stage-top {
@@ -717,6 +758,6 @@ input:disabled {
   }
 
   .arena {
-    min-height: 540px;
+    min-height: 0;
   }
 }

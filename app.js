@@ -529,7 +529,10 @@ function render() {
   const slots = layout.slots;
   const positionById = new Map(state.order.map((characterId, slotIndex) => [characterId, slots[slotIndex]]));
   const isFinalReveal = state.phase === "revealed";
+  const isPanelCollapsed = state.phase === "eating" || state.phase === "shuffling";
 
+  document.body.dataset.phase = state.phase;
+  document.body.classList.toggle("panel-collapsed", isPanelCollapsed);
   dom.characterTotal.textContent = formatNumber(count);
   const title = stageTitle();
   dom.stageTitle.textContent = title;
@@ -558,7 +561,7 @@ function render() {
       const slot = positionById.get(character.id);
       const motion = state.motionById[character.id] || "";
       const travelX = state.travelById[character.id] || 0;
-      const jumpStyle = jumpStyleForCharacter(character.id);
+      const jumpStyle = jumpStyleForCharacter(character.id, travelX);
       const imageMarkup = imageMarkupForCharacter(character.id, motion);
       const classes = ["character-card"];
 
@@ -618,13 +621,24 @@ function imageForCharacter(characterId, motion) {
   return CONFIG.characterImages.idle;
 }
 
-function jumpStyleForCharacter(characterId) {
-  const lift = 48 + (characterId % 4) * 8;
-  const peak = lift + 24 + ((characterId * 7) % 14);
+function jumpStyleForCharacter(characterId, travelX = 0) {
+  const profiles = [
+    { lift: 54, peak: 92, landRatio: 0.46 },
+    { lift: 72, peak: 132, landRatio: 0.38 },
+    { lift: 42, peak: 76, landRatio: 0.5 },
+    { lift: 84, peak: 152, landRatio: 0.34 },
+    { lift: 58, peak: 108, landRatio: 0.44 },
+    { lift: 48, peak: 86, landRatio: 0.52 },
+    { lift: 76, peak: 142, landRatio: 0.36 },
+  ];
+  const profile = profiles[characterId % profiles.length];
+  const distanceBoost = clamp(Math.round(Math.abs(travelX) / 14), 0, 24);
+  const lift = profile.lift + Math.round(distanceBoost * 0.45);
+  const peak = profile.peak + distanceBoost;
   return {
     lift: `-${lift}px`,
     peak: `-${peak}px`,
-    land: `-${Math.round(lift * 0.56)}px`,
+    land: `-${Math.round(lift * profile.landRatio)}px`,
   };
 }
 
