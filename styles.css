@@ -579,6 +579,23 @@ body.panel-collapsed .stage-top {
   animation: jumpTravelMotion var(--shuffle-move-duration) ease-in-out;
 }
 
+.board[data-cluster="true"] .character-card {
+  z-index: calc(90 + var(--z));
+}
+
+.character-card.clustered .character-inner {
+  filter:
+    drop-shadow(0 0 18px rgba(255, 216, 112, 0.42))
+    drop-shadow(0 0 26px rgba(91, 214, 255, 0.28))
+    drop-shadow(0 20px 20px rgba(0, 0, 0, 0.54));
+}
+
+.character-card.clustered::after {
+  opacity: 0.92;
+  background: rgba(255, 216, 112, 0.42);
+  animation: clusterShadowPulse 520ms ease-in-out infinite alternate;
+}
+
 .character-card.revealed {
   z-index: 80;
   transform: translate(-50%, -50%) scale(1.18);
@@ -765,6 +782,17 @@ body.panel-collapsed .stage-top {
   }
   100% {
     transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes clusterShadowPulse {
+  0% {
+    transform: translateX(-50%) scaleX(0.82);
+    filter: blur(8px);
+  }
+  100% {
+    transform: translateX(-50%) scaleX(1.18);
+    filter: blur(12px);
   }
 }
 

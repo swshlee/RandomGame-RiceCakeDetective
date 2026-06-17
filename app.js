@@ -67,6 +67,7 @@ const state = {
   shuffleStep: 0,
   motionById: {},
   travelById: {},
+  clusterMode: false,
   targetPositionInput: "",
   targetPosition: 0,
   backgroundTheme: "current",
@@ -172,6 +173,7 @@ function resetToPreview(count) {
   state.ricecakeId = -1;
   state.motionById = {};
   state.travelById = {};
+  state.clusterMode = false;
   state.targetPositionInput = "";
   state.targetPosition = 0;
   state.backgroundTheme = "current";
@@ -211,6 +213,7 @@ async function startGame() {
   state.running = true;
   state.phase = "eating";
   state.shuffleStep = 0;
+  state.clusterMode = false;
   state.targetPosition = targetPosition;
   state.targetPositionInput = "";
   state.backgroundTheme = randomBackgroundTheme();
@@ -252,8 +255,56 @@ async function startGame() {
         : makeShuffleOrder(previousOrder, round, move);
       const nextMotionById = getMotionMap(previousOrder, nextOrder);
       const nextTravelById = getTravelMap(previousOrder, nextOrder);
+
+      if (shouldUseFinalCluster(round, move)) {
+        const clusterMotionById = getClusterMotionMap(previousOrder);
+        const scatterMotionById = getScatterMotionMap(nextOrder);
+        state.motionById = getPoseMap(clusterMotionById);
+        state.travelById = {};
+        state.clusterMode = false;
+        render();
+        await wait(speed.movePrepMs);
+
+        if (token !== state.token) {
+          stopShuffleSound();
+          return;
+        }
+
+        state.motionById = clusterMotionById;
+        state.travelById = getClusterTravelMap(previousOrder);
+        state.clusterMode = true;
+        render();
+        popBursts(8 + round, "spark");
+        await wait(speed.shuffleMoveMs);
+
+        if (token !== state.token) {
+          stopShuffleSound();
+          return;
+        }
+
+        state.motionById = getPoseMap(scatterMotionById);
+        state.travelById = {};
+        render();
+        await wait(Math.max(180, Math.floor(speed.movePrepMs * 0.6)));
+
+        if (token !== state.token) {
+          stopShuffleSound();
+          return;
+        }
+
+        state.motionById = scatterMotionById;
+        state.travelById = getScatterTravelMap(nextOrder);
+        state.order = nextOrder;
+        state.clusterMode = false;
+        render();
+        popBursts(12 + round, "spark");
+        await wait(speed.shuffleMoveMs + 160);
+        continue;
+      }
+
       state.motionById = getPoseMap(nextMotionById);
       state.travelById = {};
+      state.clusterMode = false;
       render();
       await wait(speed.movePrepMs);
 
@@ -265,6 +316,7 @@ async function startGame() {
       state.motionById = nextMotionById;
       state.travelById = nextTravelById;
       state.order = nextOrder;
+      state.clusterMode = false;
       render();
       popBursts(4 + round, "spark");
       await wait(speed.shuffleMoveMs);
@@ -272,6 +324,7 @@ async function startGame() {
 
     state.motionById = {};
     state.travelById = {};
+    state.clusterMode = false;
     render();
     await wait(speed.shuffleSettleMs);
   }
@@ -286,8 +339,18 @@ async function startGame() {
   state.running = false;
   state.motionById = {};
   state.travelById = {};
+  state.clusterMode = false;
   render();
   setMessage("섞기가 끝났습니다. 결과 공개 버튼을 눌러 정답 위치를 공개하세요.");
+}
+
+function shouldUseFinalCluster(round, move) {
+  return (
+    state.difficulty === "hard" &&
+    state.speed === "fast" &&
+    round === CONFIG.shuffleRounds &&
+    move === CONFIG.shuffleMovesPerRound
+  );
 }
 
 function makeShuffleOrder(currentOrder, round, move) {
@@ -353,6 +416,43 @@ function getPoseMap(motionById) {
   }, {});
 }
 
+function getClusterMotionMap(currentOrder) {
+  const centerIndex = (currentOrder.length - 1) / 2;
+  return currentOrder.reduce((motions, characterId, index) => {
+    motions[characterId] = index <= centerIndex ? "jump-right" : "jump-left";
+    return motions;
+  }, {});
+}
+
+function getScatterMotionMap(nextOrder) {
+  return nextOrder.reduce((motions, characterId, nextIndex) => {
+    const nextX = slotX(nextIndex, nextOrder.length);
+    const clusterX = clusterSlotForCharacter(characterId).x;
+    motions[characterId] = nextX >= clusterX ? "jump-right" : "jump-left";
+    return motions;
+  }, {});
+}
+
+function getClusterTravelMap(currentOrder) {
+  const boardWidth = dom.board.clientWidth || 900;
+  return currentOrder.reduce((travels, characterId, index) => {
+    const previousX = slotX(index, currentOrder.length);
+    const nextX = clusterSlotForCharacter(characterId).x;
+    travels[characterId] = round(((previousX - nextX) / 100) * boardWidth);
+    return travels;
+  }, {});
+}
+
+function getScatterTravelMap(nextOrder) {
+  const boardWidth = dom.board.clientWidth || 900;
+  return nextOrder.reduce((travels, characterId, nextIndex) => {
+    const previousX = clusterSlotForCharacter(characterId).x;
+    const nextX = slotX(nextIndex, nextOrder.length);
+    travels[characterId] = round(((previousX - nextX) / 100) * boardWidth);
+    return travels;
+  }, {});
+}
+
 function getTravelMap(previousOrder, nextOrder) {
   const boardWidth = dom.board.clientWidth || 900;
   return nextOrder.reduce((travels, characterId, nextIndex) => {
@@ -380,6 +480,7 @@ function revealResult() {
   state.phase = "revealed";
   state.motionById = { [state.ricecakeId]: "eat" };
   state.travelById = {};
+  state.clusterMode = false;
   const finalPosition = ricecakePosition();
   dom.winnerName.textContent = `왼쪽에서 ${finalPosition}번째`;
   dom.winnerPanel.hidden = false;
@@ -568,6 +669,11 @@ function render() {
   const layout = computeLayout(count);
   const slots = layout.slots;
   const positionById = new Map(state.order.map((characterId, slotIndex) => [characterId, slots[slotIndex]]));
+  if (state.clusterMode) {
+    state.characters.forEach((character) => {
+      positionById.set(character.id, clusterSlotForCharacter(character.id));
+    });
+  }
   const isFinalReveal = state.phase === "revealed";
   const isPanelCollapsed = state.phase !== "idle";
 
@@ -594,6 +700,7 @@ function render() {
   });
 
   dom.board.dataset.phase = state.phase;
+  dom.board.dataset.cluster = state.clusterMode ? "true" : "false";
   dom.arena.dataset.background = state.backgroundTheme;
   dom.board.style.setProperty("--character-count", count);
   dom.board.style.setProperty("--card-width", `${layout.cardWidth}px`);
@@ -612,6 +719,9 @@ function render() {
 
       if (motion) {
         classes.push(`motion-${motion}`);
+      }
+      if (state.clusterMode) {
+        classes.push("clustered");
       }
       if (state.phase === "eating" && character.id === state.ricecakeId) {
         classes.push("eating");
@@ -746,6 +856,24 @@ function computeLayout(count) {
     z: 10 + slotIndex,
   }));
   return { slots, cardWidth, moveCardWidth, characterHeight };
+}
+
+function clusterSlotForCharacter(characterId) {
+  const offsets = [
+    { x: 0, y: 0 },
+    { x: -2.4, y: -1.2 },
+    { x: 2.4, y: 1.1 },
+    { x: -1.2, y: 2.1 },
+    { x: 1.4, y: -2 },
+    { x: -3.1, y: 0.9 },
+    { x: 3.1, y: -0.7 },
+  ];
+  const offset = offsets[characterId % offsets.length];
+  return {
+    x: round(50 + offset.x),
+    y: round(63 + offset.y),
+    z: 100 + characterId,
+  };
 }
 
 function popBursts(count, type) {
